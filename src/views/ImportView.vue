@@ -11,6 +11,8 @@ import CapaTreeTable from '@/components/CapaTreeTable.vue'
 import SettingsPanel from '@/components/SettingsPanel.vue'
 import CapasByFunction from '@/components/CapasByFunction.vue'
 
+import demoRdoc from '@/assets/data/demo-rdoc.json'
+
 const toast = useToast()
 const jsonData = ref(null)
 
@@ -72,6 +74,16 @@ const loadFromURL = async () => {
     })
   }
 }
+
+const loadDemoData = () => {
+  jsonData.value = demoRdoc
+  toast.add({
+    severity: 'success',
+    summary: 'Success',
+    detail: 'Demo data loaded successfully',
+    life: 3000
+  })
+}
 </script>
 
 <template>
@@ -109,6 +121,14 @@ const loadFromURL = async () => {
               />
             </div>
           </div>
+          <div class="or-column">
+            <b>OR</b>
+          </div>
+          <div class="md-column">
+            <div class="load-demo-button">
+              <Button label="Preview Demo" @click="loadDemoData" />
+            </div>
+          </div>
         </div>
       </template>
     </Card>
@@ -138,7 +158,8 @@ const loadFromURL = async () => {
   div.disabled {
     color: gray;
   }
-  .form-field {
+  .form-field,
+  .load-demo-button {
     width: 100%;
     display: flex;
     justify-content: center;
@@ -151,14 +172,8 @@ const loadFromURL = async () => {
   .md-column {
     width: 40%;
   }
-  .lg-column {
-    width: 100%;
-  }
   .spacer {
     width: 10%;
-  }
-  .sm-column {
-    width: 20%;
   }
   .or-column {
     display: flex;
