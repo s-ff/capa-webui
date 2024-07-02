@@ -26,7 +26,7 @@ const viewingOptions = ref([
   { label: 'Show capabilities by function', value: 'Show capabilities by function' }
 ])
 
-const selectedViewingOption = ref('Show capabilities') // Default option is: Show capabilities
+const selectedViewingOption = ref('Show capabilities') // initialized to default option: Show capabilities
 </script>
 
 <style scoped>

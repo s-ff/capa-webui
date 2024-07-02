@@ -1,6 +1,7 @@
 <template>
   <TreeTable
     :value="treeData"
+    size="small"
     removableSort
     sortField="funcaddr"
     :sortOrder="1"
@@ -19,8 +20,17 @@
         <Button icon="pi pi-arrow-up" label="Go Up" severity="warn" @click="scrollToTop" />
       </div>
     </template>
-    <Column field="funcaddr" sortable header="Function Address" expander> </Column>
-    <Column field="matchcount" header="Rule Matches"></Column>
+    <Column field="funcaddr" sortable header="Function Address" expander>
+      <template #body="slotProps">
+        {{ slotProps.node.data.funcaddr }}
+        <Badge
+          v-if="slotProps.node.data.matchcount > 1"
+          :value="`${slotProps.node.data.matchcount} matches`"
+          severity="contrast"
+        ></Badge>
+      </template>
+    </Column>
+    <Column field="matchcount" hidden header="Rule Matches"></Column>
     <Column field="namespace" sortable header="Namespace"></Column>
     <Column field="source" header="Source">
       <template #body="slotProps">
@@ -33,7 +43,7 @@
     </Column>
   </TreeTable>
 
-  <Dialog v-model:visible="sourceDialogVisible" header="Rule Source" :style="{ width: '50vw' }">
+  <Dialog v-model:visible="sourceDialogVisible" :style="{ width: '50vw' }">
     <pre>{{ currentSource }}</pre>
   </Dialog>
 </template>
@@ -44,6 +54,7 @@ import TreeTable from 'primevue/treetable'
 import Column from 'primevue/column'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
+import Badge from 'primevue/badge'
 
 const props = defineProps({
   data: {

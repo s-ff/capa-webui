@@ -2,6 +2,8 @@
   <div class="card">
     <TreeTable
       :value="treeData"
+      v-model:expandedKeys="expandedKeys"
+      size="small"
       :filters="filters"
       :filterMode="filterMode.value"
       sortField="namespace"
@@ -12,7 +14,16 @@
       removableSort
     >
       <template #header>
-        <div style="display: flex; justify-content: end">
+        <div
+          style="
+            margin-bottom: 16px;
+            margin-left: 16px;
+            display: flex;
+            justify-content: space-between;
+          "
+        >
+          <Button icon="pi pi-expand" @click="toggleAllNodes" label="Toggle All" />
+
           <IconField>
             <InputIcon class="pi pi-search" />
             <InputText v-model="filters['global']" placeholder="Global Search" />
@@ -24,27 +35,13 @@
         <template #filter>
           <InputText v-model="filters['name']" type="text" placeholder="Filter by rule" />
         </template>
-      </Column>
-
-      <Column field="matchCount" sortable header="Match Count">
-        <template #filter>
-          <InputText
-            v-model="filters['matchCount']"
-            type="text"
-            placeholder="Filter by number of matches"
-          />
-        </template>
         <template #body="slotProps">
-          <Tag
-            v-if="slotProps.node.data.matchCount"
-            :severity="slotProps.node.data.matchCount === 1 ? 'secondary' : ''"
-          >
-            {{
-              slotProps.node.data.matchCount === 1
-                ? '1 match'
-                : `${slotProps.node.data.matchCount} matches`
-            }}
-          </Tag>
+          {{ slotProps.node.data.name }}
+          <Badge
+            v-if="slotProps.node.data.matchCount > 1"
+            :value="`${slotProps.node.data.matchCount} matches`"
+            severity="contrast"
+          ></Badge>
         </template>
       </Column>
 
@@ -87,7 +84,7 @@
       </Column>
     </TreeTable>
 
-    <Dialog v-model:visible="sourceDialogVisible" header="Rule Source" :style="{ width: '50vw' }">
+    <Dialog v-model:visible="sourceDialogVisible" :style="{ width: '50vw' }">
       <pre>{{ currentSource }}</pre>
     </Dialog>
   </div>
@@ -103,6 +100,7 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
+import Badge from 'primevue/badge'
 
 const props = defineProps({
   data: {
@@ -116,13 +114,14 @@ const filters = ref({})
 const filterMode = ref({ value: 'lenient' })
 const sourceDialogVisible = ref(false)
 const currentSource = ref('')
+const expandedKeys = ref({})
 
 const showSource = (source) => {
   currentSource.value = source
   sourceDialogVisible.value = true
 }
 
-const parseNode = (node, parentKey, index) => {
+const parseNode = (node, parentKey, index, rules) => {
   if (!node || !node.success) return null
 
   const key = `${parentKey}-${index}`
@@ -138,9 +137,17 @@ const parseNode = (node, parentKey, index) => {
     children: []
   }
 
+  if (node.node.feature && node.node.feature.type === 'match') {
+    const ruleName = node.node.feature.match
+    const rule = rules[ruleName]
+    if (rule) {
+      result.data.source = rule.source
+    }
+  }
+
   if (node.children && Array.isArray(node.children)) {
     result.children = node.children
-      .map((child, childIndex) => parseNode(child, key, childIndex))
+      .map((child, childIndex) => parseNode(child, key, childIndex, rules))
       .filter((child) => child !== null)
   }
 
@@ -151,9 +158,9 @@ const getNodeName = (node) => {
   if (node.node.statement) {
     return `${node.node.statement.type}`
   } else if (node.node.feature) {
-    if (node.node.feature.type === 'number') {
-      const number = node.node.feature.number
-      return `${node.node.feature.type}: 0x${number.toString(16).toUpperCase()}`
+    if (node.node.feature.type === 'number' || node.node.feature.type === 'offset') {
+      const value = node.node.feature.number || node.node.feature.offset
+      return `${node.node.feature.type}: 0x${value.toString(16).toUpperCase()}`
     } else {
       return `${node.node.feature.type}: ${node.node.feature[node.node.feature.type]}`
     }
@@ -179,7 +186,7 @@ const parseRules = (rules) => {
       source: rule.source
     },
     children: rule.matches
-      .map((match, matchIndex) => parseNode(match[1], index.toString(), matchIndex))
+      .map((match, matchIndex) => parseNode(match[1], index.toString(), matchIndex, rules))
       .filter((child) => child !== null)
   }))
 }
@@ -212,10 +219,34 @@ function getNamespaceStyle(namespace) {
     color: colors.text
   }
 }
+
+const initializeExpandedKeys = (data) => {
+  const keys = {}
+  const traverse = (node) => {
+    if (node.children) {
+      keys[node.key] = true
+      node.children.forEach(traverse)
+    }
+  }
+  data.forEach(traverse)
+  expandedKeys.value = keys
+}
+
+const toggleAllNodes = () => {
+  if (Object.keys(expandedKeys.value).length > 0) {
+    // If there are expanded nodes, collapse all
+    expandedKeys.value = {}
+  } else {
+    // If all nodes are collapsed, expand all
+    initializeExpandedKeys(treeData.value)
+  }
+}
+
 onMounted(() => {
   if (props.data && props.data.rules) {
     treeData.value = parseRules(props.data.rules)
     console.log('Parsed tree data:', treeData.value)
+    initializeExpandedKeys(treeData.value)
   } else {
     console.error('Invalid data prop:', props.data)
   }

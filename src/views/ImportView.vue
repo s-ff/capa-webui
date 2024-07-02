@@ -6,12 +6,12 @@ import { useToast } from 'primevue/usetoast'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import DescriptionPanel from '../components/DescriptionPanel.vue'
-import MetadataTable from '@/components/MetadataTable.vue'
-import CapaTreeTable from '@/components/CapaTreeTable.vue'
-import SettingsPanel from '@/components/SettingsPanel.vue'
-import CapasByFunction from '@/components/CapasByFunction.vue'
+import MetadataTable from '../components/MetadataTable.vue'
+import CapaTreeTable from '../components/CapaTreeTable.vue'
+import SettingsPanel from '../components/SettingsPanel.vue'
+import CapasByFunction from '../components/CapasByFunction.vue'
 
-import demoRdoc from '@/assets/data/demo-rdoc.json'
+import demoRdoc from '../assets/data/demo-rdoc.json'
 
 const toast = useToast()
 const jsonData = ref(null)
