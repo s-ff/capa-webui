@@ -208,7 +208,6 @@ function getNamespaceStyle(namespace) {
   }
 }
 onMounted(() => {
-  console.log('[CapaTreeTable.vue] Component mounted')
   if (props.data && props.data.rules) {
     treeData.value = parseRules(props.data.rules)
     console.log('Parsed tree data:', treeData.value)

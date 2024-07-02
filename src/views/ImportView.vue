@@ -8,9 +8,17 @@ import Button from 'primevue/button'
 import DescriptionPanel from '../components/DescriptionPanel.vue'
 import MetadataTable from '@/components/MetadataTable.vue'
 import CapaTreeTable from '@/components/CapaTreeTable.vue'
+import SettingsPanel from '@/components/SettingsPanel.vue'
+import CapasByFunction from '@/components/CapasByFunction.vue'
 
 const toast = useToast()
 const jsonData = ref(null)
+
+const selectedViewingOption = ref('Show capabilities')
+
+const updateViewingOption = (option) => {
+  selectedViewingOption.value = option.value
+}
 
 const onUpload = (event) => {
   const file = event.files[0]
@@ -64,10 +72,6 @@ const loadFromURL = async () => {
     })
   }
 }
-
-// const loadFromURL = (url) => {
-//   console.log('Loading layer from URL:', url)
-// }
 </script>
 
 <template>
@@ -109,8 +113,16 @@ const loadFromURL = async () => {
       </template>
     </Card>
   </Panel>
+
   <MetadataTable v-if="jsonData" :data="jsonData"> </MetadataTable>
-  <CapaTreeTable v-if="jsonData" :data="jsonData"> </CapaTreeTable>
+  <SettingsPanel v-if="jsonData" @update:viewing-option="updateViewingOption"></SettingsPanel>
+  <CapaTreeTable v-if="jsonData && selectedViewingOption === 'Show capabilities'" :data="jsonData">
+  </CapaTreeTable>
+  <CapasByFunction
+    v-if="jsonData && selectedViewingOption === 'Show capabilities by function'"
+    :data="jsonData"
+  >
+  </CapasByFunction>
 </template>
 
 <style scoped>
