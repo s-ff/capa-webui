@@ -151,7 +151,12 @@ const getNodeName = (node) => {
   if (node.node.statement) {
     return `${node.node.statement.type}`
   } else if (node.node.feature) {
-    return `${node.node.feature.type}: ${node.node.feature[node.node.feature.type]}`
+    if (node.node.feature.type === 'number') {
+      const number = node.node.feature.number
+      return `${node.node.feature.type}: 0x${number.toString(16).toUpperCase()}`
+    } else {
+      return `${node.node.feature.type}: ${node.node.feature[node.node.feature.type]}`
+    }
   }
   return node.node.type || 'unknown'
 }
