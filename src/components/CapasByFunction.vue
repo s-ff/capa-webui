@@ -16,7 +16,7 @@
       </div>
     </template>
     <template #footer>
-      <div style="diplay: flex; justify-content: flex-end">
+      <div style="display: flex; justify-content: flex-start">
         <Button icon="pi pi-arrow-up" label="Go Up" severity="warn" @click="scrollToTop" />
       </div>
     </template>

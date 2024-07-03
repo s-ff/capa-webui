@@ -22,12 +22,18 @@
             justify-content: space-between;
           "
         >
-          <Button icon="pi pi-expand" @click="toggleAllNodes" label="Toggle All" />
+          <Button icon="pi pi-expand" @click="toggleAll" label="Toggle All" />
 
           <IconField>
             <InputIcon class="pi pi-search" />
             <InputText v-model="filters['global']" placeholder="Global Search" />
           </IconField>
+        </div>
+      </template>
+
+      <template #footer>
+        <div style="display: flex; justify-content: flex-start">
+          <Button icon="pi pi-arrow-up" label="Go Up" severity="warn" @click="scrollToTop" />
         </div>
       </template>
 
@@ -220,33 +226,35 @@ function getNamespaceStyle(namespace) {
   }
 }
 
-const initializeExpandedKeys = (data) => {
-  const keys = {}
-  const traverse = (node) => {
-    if (node.children) {
-      keys[node.key] = true
-      node.children.forEach(traverse)
+// Expand All/Collapse All
+const toggleAll = () => {
+  let _expandedKeys = {}
+
+  if (Object.keys(expandedKeys.value).length === 0) {
+    // If no nodes are expanded, expand all nodes
+    const expandAll = (node) => {
+      if (node.children && node.children.length) {
+        _expandedKeys[node.key] = true
+        node.children.forEach(expandAll)
+      }
     }
+
+    treeData.value.forEach(expandAll)
   }
-  data.forEach(traverse)
-  expandedKeys.value = keys
+
+  expandedKeys.value = _expandedKeys
 }
 
-const toggleAllNodes = () => {
-  if (Object.keys(expandedKeys.value).length > 0) {
-    // If there are expanded nodes, collapse all
-    expandedKeys.value = {}
-  } else {
-    // If all nodes are collapsed, expand all
-    initializeExpandedKeys(treeData.value)
-  }
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
 }
 
 onMounted(() => {
   if (props.data && props.data.rules) {
     treeData.value = parseRules(props.data.rules)
-    console.log('Parsed tree data:', treeData.value)
-    initializeExpandedKeys(treeData.value)
   } else {
     console.error('Invalid data prop:', props.data)
   }
