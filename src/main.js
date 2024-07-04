@@ -10,6 +10,7 @@ import MenuBar from 'primevue/menubar'
 import Card from 'primevue/card'
 import Panel from 'primevue/panel'
 import Column from 'primevue/column'
+import Checkbox from 'primevue/checkbox'
 import FloatLabel from 'primevue/floatlabel'
 import Tooltip from 'primevue/tooltip'
 import ToastService from 'primevue/toastservice'
@@ -37,6 +38,7 @@ app.directive('ripple', Ripple)
 app.component('Card', Card)
 app.component('Panel', Panel)
 app.component('MenuBar', MenuBar)
+app.component('Checkbox', Checkbox)
 app.component('FloatLabel', FloatLabel)
 app.component('Column', Column)
 

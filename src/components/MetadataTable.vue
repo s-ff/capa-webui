@@ -44,7 +44,6 @@ const parseMetadata = () => {
 
     // Populate footer data
     ruleCount.value = Object.keys(props.data.rules).length
-    console.log(props.data.rules['PEB access'])
     namespaceCount.value = 'X'
     functionCount.value = props.data.meta.analysis.feature_counts.functions.length
   }

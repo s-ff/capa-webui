@@ -12,6 +12,10 @@
       :rows="10"
       :rowsPerPageOptions="[5, 10, 25, 50]"
       removableSort
+      :showGridlines="false"
+      :indentation="2"
+      v-model:selectionKeys="selectedNodeKeys"
+      selectionMode="checkbox"
     >
       <template #header>
         <div
@@ -39,10 +43,30 @@
 
       <Column field="name" header="Rule" sortable expander>
         <template #filter>
-          <InputText v-model="filters['name']" type="text" placeholder="Filter by rule" />
+          <InputText
+            style="width: 70%"
+            v-model="filters['name']"
+            type="text"
+            placeholder="Filter by rule or nested feature"
+          />
         </template>
         <template #body="slotProps">
-          {{ slotProps.node.data.name }}
+          <span
+            :style="{
+              color:
+                !slotProps.node.children || slotProps.node.children.length === 0
+                  ? 'green'
+                  : 'inherit',
+              fontWeight:
+                slotProps.node.children &&
+                slotProps.node.children.length > 0 &&
+                slotProps.node.key.includes('-')
+                  ? 'bold'
+                  : 'normal'
+            }"
+          >
+            {{ slotProps.node.data.name }}
+          </span>
           <Badge
             v-if="slotProps.node.data.matchCount > 1"
             :value="`${slotProps.node.data.matchCount} matches`"
@@ -107,6 +131,7 @@ import Button from 'primevue/button'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import Badge from 'primevue/badge'
+import Checkbox from 'primevue/checkbox'
 
 const props = defineProps({
   data: {
@@ -121,6 +146,7 @@ const filterMode = ref({ value: 'lenient' })
 const sourceDialogVisible = ref(false)
 const currentSource = ref('')
 const expandedKeys = ref({})
+const selectedNodeKeys = ref([])
 
 const showSource = (source) => {
   currentSource.value = source
@@ -133,6 +159,7 @@ const parseNode = (node, parentKey, index, rules) => {
   const key = `${parentKey}-${index}`
   const result = {
     key,
+    success: node.success,
     data: {
       name: getNodeName(node),
       address: getNodeAddress(node),
@@ -143,30 +170,83 @@ const parseNode = (node, parentKey, index, rules) => {
     children: []
   }
 
-  if (node.node.feature && node.node.feature.type === 'match') {
-    const ruleName = node.node.feature.match
-    const rule = rules[ruleName]
-    if (rule) {
-      result.data.source = rule.source
-    }
-  }
-
   if (node.children && Array.isArray(node.children)) {
     result.children = node.children
       .map((child, childIndex) => parseNode(child, key, childIndex, rules))
       .filter((child) => child !== null)
   }
 
+  if (node.node.feature && node.node.feature.type === 'match') {
+    const ruleName = node.node.feature.match
+    const rule = rules[ruleName]
+    if (rule) {
+      result.data.source = rule.source
+    }
+    // TODO(s-ff): should match statements be expandable
+    result.children = []
+  }
+
+  // Check if the node is an optional statement
+  if (node.node.statement && node.node.statement.type === 'optional') {
+    const successfulChildren = result.children.filter((child) => child.success)
+
+    // If none of the children have success set to true, don't include the optional node
+    if (successfulChildren.length === 0) {
+      return null
+    }
+
+    // Include only the successful children in the result
+    result.children = successfulChildren
+  }
+
+  // Check if the node is an optional statement
+  if (node.node.statement && node.node.statement.type === 'not') {
+    return null
+  }
+
   return result
 }
 
 const getNodeName = (node) => {
+  // statements (or, and, optional, ... etc)
   if (node.node.statement) {
+    if (node.node.statement.type === 'subscope') {
+      return `${node.node.statement.type}: ${node.node.statement.scope}`
+    } else if (node.node.statement.type === 'range') {
+      const { child, min, max } = node.node.statement
+      const { type, [type]: value } = child
+
+      //let rangeType = `count(${type}(${value}))`
+      let rangeType = value ? `count(${type}(${value}))` : `count(${type})`
+      let rangeValue = ''
+
+      if (min === max) {
+        rangeValue = `${min}`
+      } else if (max >= Number.MAX_SAFE_INTEGER) {
+        // this is the infinity case
+        rangeValue = `${min} or more`
+      } else {
+        // this is when a range is specified
+        rangeValue = `between ${min} and ${max}`
+      }
+
+      return `${rangeType}: ${rangeValue} `
+    } else if (node.node.statement.type === 'some') {
+      return `${node.node.statement.count} or more`
+    }
+
     return `${node.node.statement.type}`
+    // features (api, some, range, regex, ... etc)
   } else if (node.node.feature) {
-    if (node.node.feature.type === 'number' || node.node.feature.type === 'offset') {
-      const value = node.node.feature.number || node.node.feature.offset
+    if (node.node.feature.type === 'number') {
+      const value = node.node.feature.number
       return `${node.node.feature.type}: 0x${value.toString(16).toUpperCase()}`
+    } else if (node.node.feature.type === 'offset') {
+      const value = node.node.feature.offset
+      return `${node.node.feature.type}: 0x${value.toString(16).toUpperCase()}`
+    } else if (node.node.feature.type === 'operand offset') {
+      const value = node.node.feature.operand_offset
+      return `operand[${node.node.feature.index}].offset: 0x${value.toString(16).toUpperCase()} = ${node.node.feature.description}`
     } else {
       return `${node.node.feature.type}: ${node.node.feature[node.node.feature.type]}`
     }

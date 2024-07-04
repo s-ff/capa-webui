@@ -4,6 +4,7 @@
       <div class="settings-panel">
         <label for="viewing-options">Select a viewing mode:</label>
         <Dropdown
+          style="width: 35%"
           id="viewing-options"
           v-model="selectedViewingOption"
           :options="viewingOptions"
