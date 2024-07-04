@@ -19,12 +19,13 @@ import router from './router'
 const app = createApp(App)
 
 app.use(router)
+//app.use(ToastService)
 
 app.use(PrimeVue, {
   theme: {
     preset: Aura,
     options: {
-      darkModeSelector: 'light'
+      darkModeSelector: 'system'
     }
   },
   //preset: Aura,
