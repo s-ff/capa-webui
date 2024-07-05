@@ -131,7 +131,6 @@ import Button from 'primevue/button'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import Badge from 'primevue/badge'
-import Checkbox from 'primevue/checkbox'
 
 const props = defineProps({
   data: {
@@ -153,16 +152,44 @@ const showSource = (source) => {
   sourceDialogVisible.value = true
 }
 
+const invertNotStatementSuccess = (node) => {
+  if (!node) return null
+
+  // Create a new object, keeping the parent node's success as is
+  const invertedNode = {
+    ...node,
+    children: node.children
+      ? node.children.map((child) => ({
+          ...child,
+          success: !child.success, // Invert success for children
+          children: child.children ? invertNotStatementSuccess(child).children : []
+        }))
+      : []
+  }
+
+  return invertedNode
+}
+
 const parseNode = (node, parentKey, index, rules) => {
-  if (!node || !node.success) return null
+  if (!node) return null
+
+  const isNotStatement = node.node.statement && node.node.statement.type === 'not'
+
+  // Handle 'not' statements by creating a new object with inverted success values for children
+  const processedNode = isNotStatement ? invertNotStatementSuccess(node) : node
+
+  // If it's not successful, return null
+  if (!processedNode.success) {
+    return null
+  }
 
   const key = `${parentKey}-${index}`
   const result = {
     key,
-    success: node.success,
     data: {
-      name: getNodeName(node),
-      address: getNodeAddress(node),
+      success: processedNode.success,
+      name: getNodeName(processedNode),
+      address: getNodeAddress(processedNode),
       namespace: null,
       matchCount: null,
       source: null
@@ -170,38 +197,26 @@ const parseNode = (node, parentKey, index, rules) => {
     children: []
   }
 
-  if (node.children && Array.isArray(node.children)) {
-    result.children = node.children
+  if (processedNode.children && Array.isArray(processedNode.children)) {
+    result.children = processedNode.children
       .map((child, childIndex) => parseNode(child, key, childIndex, rules))
       .filter((child) => child !== null)
   }
 
-  if (node.node.feature && node.node.feature.type === 'match') {
-    const ruleName = node.node.feature.match
+  if (processedNode.node.feature && processedNode.node.feature.type === 'match') {
+    const ruleName = processedNode.node.feature.match
     const rule = rules[ruleName]
     if (rule) {
       result.data.source = rule.source
     }
-    // TODO(s-ff): should match statements be expandable
+    // TODO(s-ff): should match statement be expandable? if yes remove this
     result.children = []
   }
 
-  // Check if the node is an optional statement
-  if (node.node.statement && node.node.statement.type === 'optional') {
-    const successfulChildren = result.children.filter((child) => child.success)
-
-    // If none of the children have success set to true, don't include the optional node
-    if (successfulChildren.length === 0) {
-      return null
-    }
-
-    // Include only the successful children in the result
-    result.children = successfulChildren
-  }
-
-  // Check if the node is an optional statement
-  if (node.node.statement && node.node.statement.type === 'not') {
-    return null
+  // Handle optional statements
+  if (processedNode.node.statement && processedNode.node.statement.type === 'optional') {
+    // if the optional statement has no children, do not render it
+    if (result.children.length === 0) return null
   }
 
   return result
@@ -257,6 +272,9 @@ const getNodeName = (node) => {
 const getNodeAddress = (node) => {
   if (node.locations && node.locations.length > 0 && node.locations[0].type === 'absolute') {
     return `0x${node.locations[0].value.toString(16).toUpperCase()}`
+    // return props.data.meta.version === '7.0.0'
+    //   ? 'TODO'
+    //   : `0x${node.locations[0].value.toString(16).toUpperCase()}`
   }
   return null
 }

@@ -80,7 +80,10 @@ const showSource = (source) => {
 
 const treeData = computed(() => {
   const data = []
-
+  // const functions =
+  //   props.data.meta.version === '7.0.0'
+  //     ? props.data.meta.static_analysis.layout.functions
+  //     : props.data.meta.analysis.layout.functions
   for (const functionInfo of props.data.meta.analysis.layout.functions) {
     const functionAddress = functionInfo.address.value.toString(16).toUpperCase()
     const matchingRules = []

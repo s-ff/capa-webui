@@ -1,8 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import FileUpload from 'primevue/fileupload'
-//import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
+import Toast from 'primevue/toast'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import DescriptionPanel from '../components/DescriptionPanel.vue'
@@ -10,6 +10,7 @@ import MetadataTable from '../components/MetadataTable.vue'
 import CapaTreeTable from '../components/CapaTreeTable.vue'
 import SettingsPanel from '../components/SettingsPanel.vue'
 import CapasByFunction from '../components/CapasByFunction.vue'
+//import CapasByProcess from '../components/CapasByProcess.vue'
 
 import demoRdoc from '../assets/data/demo-rdoc.json'
 
@@ -22,13 +23,37 @@ const updateViewingOption = (option) => {
   selectedViewingOption.value = option.value
 }
 
+const checkVersion = (data) => {
+  const version = data.meta.version
+  if (version < '7.0.0') {
+    console.log(`Version ${version} is not supported. Please use version 7.0.0 or higher.`)
+    toast.add({
+      severity: 'error',
+      summary: 'Unsupported Version',
+      detail: `Version ${version} is not supported. Please use version 7.0.0 or higher.`,
+      life: 5000
+    })
+    return false
+  }
+  return true
+}
+
 const onUpload = (event) => {
   const file = event.files[0]
   const reader = new FileReader()
 
   reader.onload = (e) => {
     try {
-      jsonData.value = JSON.parse(e.target.result)
+      const data = JSON.parse(e.target.result)
+      if (checkVersion(data)) {
+        jsonData.value = data
+        toast.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'JSON file uploaded successfully',
+          life: 3000
+        })
+      }
     } catch (error) {
       console.error('Error parsing JSON:', error)
       toast.add({
@@ -56,14 +81,15 @@ const loadFromURL = async () => {
     }
 
     const data = await response.json()
-    jsonData.value = data
-
-    toast.add({
-      severity: 'success',
-      summary: 'Success',
-      detail: 'JSON data loaded successfully',
-      life: 3000
-    })
+    if (checkVersion(data)) {
+      jsonData.value = data
+      toast.add({
+        severity: 'success',
+        summary: 'Success',
+        detail: 'JSON data loaded successfully',
+        life: 3000
+      })
+    }
   } catch (error) {
     console.error('Error loading JSON from URL:', error)
     toast.add({
@@ -76,13 +102,15 @@ const loadFromURL = async () => {
 }
 
 const loadDemoData = () => {
-  jsonData.value = demoRdoc
-  toast.add({
-    severity: 'success',
-    summary: 'Success',
-    detail: 'Demo data loaded successfully',
-    life: 3000
-  })
+  if (checkVersion(demoRdoc)) {
+    jsonData.value = demoRdoc
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Demo data loaded successfully',
+      life: 3000
+    })
+  }
 }
 </script>
 
@@ -133,7 +161,7 @@ const loadDemoData = () => {
       </template>
     </Card>
   </Panel>
-
+  <Toast />
   <MetadataTable v-if="jsonData" :data="jsonData"> </MetadataTable>
   <SettingsPanel v-if="jsonData" @update:viewing-option="updateViewingOption"></SettingsPanel>
   <CapaTreeTable v-if="jsonData && selectedViewingOption === 'Show capabilities'" :data="jsonData">

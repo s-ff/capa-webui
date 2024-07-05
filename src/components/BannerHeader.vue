@@ -8,7 +8,7 @@
       <span>Github issues</span>
       <i id="github-icon" class="pi pi-github"></i>
     </a>
-    <a v-ripple class="close-button" @click="closeHotDeals">
+    <a v-ripple class="close-button" @click="closeBanner">
       <i class="pi pi-times"></i>
     </a>
   </div>
@@ -19,7 +19,7 @@ import { ref } from 'vue'
 
 const showBanner = ref(true)
 
-const closeHotDeals = () => {
+const closeBanner = () => {
   showBanner.value = false
 }
 </script>
