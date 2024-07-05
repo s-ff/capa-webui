@@ -7,46 +7,27 @@ import Menubar from 'primevue/menubar'
 const router = useRouter()
 
 const items = ref([
-  {
-    label: 'Documentation',
-    icon: 'pi pi-home',
-    command: () => {
-      router.push('/')
-    }
-  },
+  // {
+  //   label: 'Documentation',
+  //   icon: 'pi pi-home',
+  //   command: () => {
+  //     router.push('/')
+  //   }
+  // },
   {
     label: 'Import Analysis',
     icon: 'pi pi-file-import',
     command: () => {
-      router.push('/import')
+      router.push('/')
     }
   },
-  {
-    label: 'Rules Catalogue',
-    icon: 'pi pi-box',
-    command: () => {
-      router.push('/rules')
-    }
-  },
-  /*
-  {
-    label: 'Router',
-    icon: 'pi pi-palette',
-    items: [
-      {
-        separator: true
-      },
-      {
-        label: 'capa-rules',
-        route: '/'
-      },
-      {
-        label: 'Unstyled',
-        route: '/'
-      }
-    ]
-  },
-  */
+  // {
+  //   label: 'Rules Catalogue',
+  //   icon: 'pi pi-box',
+  //   command: () => {
+  //     router.push('/rules')
+  //   }
+  // },
   {
     label: 'Toolset',
     icon: 'pi pi-list',

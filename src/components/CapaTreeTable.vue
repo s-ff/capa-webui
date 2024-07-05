@@ -9,7 +9,7 @@
       sortField="namespace"
       :sortOrder="-1"
       :paginator="true"
-      :rows="10"
+      :rows="50"
       :rowsPerPageOptions="[5, 10, 25, 50]"
       removableSort
       :showGridlines="false"

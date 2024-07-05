@@ -164,6 +164,8 @@ const loadDemoData = () => {
   <Toast />
   <MetadataTable v-if="jsonData" :data="jsonData"> </MetadataTable>
   <SettingsPanel v-if="jsonData" @update:viewing-option="updateViewingOption"></SettingsPanel>
+  <!-- <CapasByProcess v-if="jsonData && selectedViewingOption === 'Show capabilities'" :data="jsonData">
+  </CapasByProcess> -->
   <CapaTreeTable v-if="jsonData && selectedViewingOption === 'Show capabilities'" :data="jsonData">
   </CapaTreeTable>
   <CapasByFunction

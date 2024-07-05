@@ -18,6 +18,9 @@ const ruleCount = ref(0)
 const namespaceCount = ref(0)
 const functionCount = ref(null)
 const processCount = ref(null)
+const libRatio = ref(0)
+
+const MIN_LIBFUNCS_RATIO = 0.4 // Adjust this value as needed
 
 const parseMetadata = () => {
   if (props.data) {
@@ -59,12 +62,33 @@ const parseMetadata = () => {
 
     // Populate footer data
     ruleCount.value = Object.keys(props.data.rules).length
-    namespaceCount.value = 'X'
+    // Count distinct namespaces
+    const namespaces = new Set()
+    for (const rule of Object.values(props.data.rules)) {
+      namespaces.add(rule.meta.namespace)
+    }
+    namespaceCount.value = namespaces.size
+
+    // Calculate the ratio of library functions
     props.data.meta.flavor === 'static'
       ? (functionCount.value = analysisData.feature_counts.functions.length)
       : (processCount.value = analysisData.feature_counts.processes.length)
+
+    const nLibs = analysisData.library_functions.length
+    const nFuncs = analysisData.feature_counts.functions.length
+    libRatio.value = nFuncs + nLibs > 0 ? nLibs / (nFuncs + nLibs) : 0
   }
 }
+
+const showLibFuncWarning = computed(() => {
+  return props.data.meta.flavor === 'static' && libRatio.value < MIN_LIBFUNCS_RATIO
+})
+
+const libFuncWarningText = computed(() => {
+  return libRatio.value === 0
+    ? 'No functions were identified as library functions via FLIRT. Results may contain false positives.'
+    : `Only ${(libRatio.value * 100).toFixed(2)}% of all functions were identified as library functions via FLIRT. Results may contain false positives.`
+})
 
 const countLabel = computed(() => {
   if (props.data.meta.flavor === 'static') {
@@ -132,10 +156,9 @@ onMounted(() => {
       </template>
     </DataTable>
     <br />
-    <Message severity="warn" icon="pi pi-exclamation-triangle" closable
-      >Only XX.X% of all functions were identified as library functions via FLIRT. Results may
-      contain false positives.</Message
-    >
+    <Message v-if="showLibFuncWarning" severity="warn" icon="pi pi-exclamation-triangle" closable>
+      {{ libFuncWarningText }}
+    </Message>
   </Panel>
 </template>
 
