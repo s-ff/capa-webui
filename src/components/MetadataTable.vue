@@ -108,15 +108,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <Panel header="Program properties (now hidden by default)" toggleable collapsed>
+  <Panel toggleable collapsed>
     <DataTable :value="metadata" stripedRows size="small" tableStyle="min-width: 50rem">
-      <Column field="key" header="Property">
+      <Column field="key">
         <template #body="slotProps">
           <span style="font-weight: bold">{{ slotProps.data.key }}</span>
         </template>
         ></Column
       >
-      <Column field="value" header="Value">
+      <Column field="value">
         <template #body="slotProps">
           <Tag
             v-if="slotProps.data.key.toLowerCase() === 'extractor'"
