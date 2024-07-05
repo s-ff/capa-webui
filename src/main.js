@@ -1,7 +1,7 @@
 import 'primeicons/primeicons.css'
 import './assets/main.css'
 
-import 'highlight.js/styles/atom-one-dark.css'
+import 'highlight.js/styles/default.css'
 import 'highlight.js/lib/common'
 import hljsVuePlugin from '@highlightjs/vue-plugin'
 
