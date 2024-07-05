@@ -41,7 +41,7 @@
         </div>
       </template>
 
-      <Column field="name" header="Rule" sortable expander>
+      <Column field="name" header="Rule" sortable expander filterMatchMode="contains">
         <template #filter>
           <InputText
             style="width: 70%"
@@ -75,7 +75,7 @@
         </template>
       </Column>
 
-      <Column field="address" sortable header="Address">
+      <Column field="address" sortable header="Address" filterMatchMode="contains">
         <template #filter>
           <InputText v-model="filters['address']" type="text" placeholder="Filter by address" />
           <span
@@ -89,7 +89,7 @@
         </template>
       </Column>
 
-      <Column field="namespace" sortable header="Namespace">
+      <Column field="namespace" sortable header="Namespace" filterMatchMode="contains">
         <template #filter>
           <InputText v-model="filters['namespace']" type="text" placeholder="Filter by namespace" />
         </template>
