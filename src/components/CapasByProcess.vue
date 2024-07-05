@@ -3,7 +3,7 @@
     :value="treeData"
     size="small"
     removableSort
-    sortField="funcaddr"
+    sortField="processname"
     :sortOrder="1"
     :paginator="true"
     :rows="10"
@@ -20,9 +20,9 @@
         <Button icon="pi pi-arrow-up" label="Go Up" severity="warn" @click="scrollToTop" />
       </div>
     </template>
-    <Column field="funcaddr" sortable header="Function Address" expander>
+    <Column field="processname" sortable header="Process Name" expander>
       <template #body="slotProps">
-        {{ slotProps.node.data.funcaddr }}
+        {{ slotProps.node.data.processname }}
         <Badge
           v-if="slotProps.node.data.matchcount > 1"
           :value="`${slotProps.node.data.matchcount} matches`"
@@ -31,7 +31,9 @@
       </template>
     </Column>
     <Column field="matchcount" hidden header="Rule Matches"></Column>
+    <Column field="firstmatchaddr" sortable header="PID"></Column>
     <Column field="namespace" sortable header="Namespace"></Column>
+
     <Column field="source" header="Source">
       <template #body="slotProps">
         <Button
@@ -44,7 +46,7 @@
   </TreeTable>
 
   <Dialog v-model:visible="sourceDialogVisible" :style="{ width: '50vw' }">
-    <highlightjs autodetect :code="currentSource" />
+    <pre>{{ currentSource }}</pre>
   </Dialog>
 </template>
 
@@ -80,40 +82,45 @@ const showSource = (source) => {
 
 const treeData = computed(() => {
   const data = []
-  // const functions =
-  //   props.data.meta.version === '7.0.0'
-  //     ? props.data.meta.static_analysis.layout.functions
-  //     : props.data.meta.analysis.layout.functions
-  for (const functionInfo of props.data.meta.analysis.layout.functions) {
-    const functionAddress = functionInfo.address.value.toString(16).toUpperCase()
+  const processes = props.data.meta.analysis.layout.processes
+
+  for (const processInfo of processes) {
+    const processName = processInfo.name
     const matchingRules = []
 
     for (const ruleId in props.data.rules) {
       const rule = props.data.rules[ruleId]
-      const matches = rule.matches.filter((match) =>
-        functionInfo.matched_basic_blocks.some((block) => block.address.value === match[0].value)
-      )
 
-      if (matches.length > 0) {
-        matchingRules.push({
-          key: `${functionAddress}-${matchingRules.length}`,
-          data: {
-            funcaddr: `rule: ${rule.meta.name}`,
-            matchcount: null,
-            namespace: rule.meta.namespace,
-            source: rule.source
-          }
-        })
+      if (rule.meta.scopes.dynamic === 'process') {
+        const matches = rule.matches.filter(
+          (match) =>
+            match[0].type === 'process' &&
+            match[0].value.every((addr) => processInfo.address.value.includes(addr))
+        )
+
+        if (matches.length > 0) {
+          matchingRules.push({
+            key: `${processName}-${matchingRules.length}`,
+            data: {
+              processname: `rule: ${rule.meta.name}`,
+              matchcount: null,
+              namespace: rule.meta.namespace,
+              firstmatchaddr: processInfo.address.value.join(', '),
+              source: rule.source
+            }
+          })
+        }
       }
     }
 
     if (matchingRules.length > 0) {
       data.push({
-        key: functionAddress,
+        key: processName,
         data: {
-          funcaddr: `function: 0x${functionAddress}`,
+          processname: processName,
           matchcount: matchingRules.length,
           namespace: null,
+          firstmatchaddr: null,
           source: null
         },
         children: matchingRules

@@ -12,6 +12,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@highlightjs/vue-plugin": "^2.1.0",
     "@primevue/themes": "^4.0.0-rc.2",
     "primeicons": "^7.0.0",
     "primevue": "^4.0.0-rc.2",

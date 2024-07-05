@@ -1,6 +1,10 @@
 import 'primeicons/primeicons.css'
 import './assets/main.css'
 
+import 'highlight.js/styles/atom-one-dark.css'
+import 'highlight.js/lib/common'
+import hljsVuePlugin from '@highlightjs/vue-plugin'
+
 import { createApp } from 'vue'
 import PrimeVue from 'primevue/config'
 import Ripple from 'primevue/ripple'
@@ -19,7 +23,7 @@ import router from './router'
 const app = createApp(App)
 
 app.use(router)
-//app.use(ToastService)
+app.use(hljsVuePlugin)
 
 app.use(PrimeVue, {
   theme: {

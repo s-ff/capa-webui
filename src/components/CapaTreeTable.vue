@@ -115,7 +115,7 @@
     </TreeTable>
 
     <Dialog v-model:visible="sourceDialogVisible" :style="{ width: '50vw' }">
-      <pre>{{ currentSource }}</pre>
+      <highlightjs autodetect :code="currentSource" />
     </Dialog>
   </div>
 </template>
