@@ -28,6 +28,17 @@
           :value="`${slotProps.node.data.matchcount} matches`"
           severity="contrast"
         ></Badge>
+        <Tag
+          v-if="slotProps.node.data.lib"
+          class="info-tooltip"
+          v-tooltip.top="{
+            value: 'Library rules capture common logic',
+            showDelay: 100,
+            hideDelay: 100
+          }"
+          value="lib"
+          severity="info"
+        ></Tag>
       </template>
     </Column>
     <Column field="matchcount" hidden header="Rule Matches"></Column>
@@ -44,7 +55,7 @@
   </TreeTable>
 
   <Dialog v-model:visible="sourceDialogVisible" :style="{ width: '50vw' }">
-    <highlightjs autodetect :code="currentSource" />
+    <highlightjs lang="yml" :code="currentSource" />
   </Dialog>
 </template>
 
@@ -55,11 +66,16 @@ import Column from 'primevue/column'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import Badge from 'primevue/badge'
+import Tag from 'primevue/tag'
 
 const props = defineProps({
   data: {
     type: Object,
     required: true
+  },
+  showLibraryRules: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -79,17 +95,21 @@ const showSource = (source) => {
 }
 
 const treeData = computed(() => {
+  console.log('Computing treeData, showLibraryRules:', props.showLibraryRules)
   const data = []
-  // const functions =
-  //   props.data.meta.version === '7.0.0'
-  //     ? props.data.meta.static_analysis.layout.functions
-  //     : props.data.meta.analysis.layout.functions
+
   for (const functionInfo of props.data.meta.analysis.layout.functions) {
     const functionAddress = functionInfo.address.value.toString(16).toUpperCase()
     const matchingRules = []
 
     for (const ruleId in props.data.rules) {
       const rule = props.data.rules[ruleId]
+
+      // Skip library rules if showLibraryRules is false
+      if (!props.showLibraryRules && rule.meta.lib) {
+        continue
+      }
+
       const matches = rule.matches.filter((match) =>
         functionInfo.matched_basic_blocks.some((block) => block.address.value === match[0].value)
       )
@@ -99,6 +119,7 @@ const treeData = computed(() => {
           key: `${functionAddress}-${matchingRules.length}`,
           data: {
             funcaddr: `rule: ${rule.meta.name}`,
+            lib: rule.meta.lib,
             matchcount: null,
             namespace: rule.meta.namespace,
             source: rule.source
@@ -112,6 +133,7 @@ const treeData = computed(() => {
         key: functionAddress,
         data: {
           funcaddr: `function: 0x${functionAddress}`,
+          lib: false,
           matchcount: matchingRules.length,
           namespace: null,
           source: null
@@ -123,7 +145,6 @@ const treeData = computed(() => {
 
   return data
 })
-
 // Expand All/Collapse All
 const expandedKeys = ref({})
 

@@ -10,7 +10,6 @@ import MetadataTable from '../components/MetadataTable.vue'
 import CapaTreeTable from '../components/CapaTreeTable.vue'
 import SettingsPanel from '../components/SettingsPanel.vue'
 import CapasByFunction from '../components/CapasByFunction.vue'
-//import CapasByProcess from '../components/CapasByProcess.vue'
 
 import demoRdoc from '../assets/data/demo-rdoc.json'
 
@@ -18,9 +17,14 @@ const toast = useToast()
 const jsonData = ref(null)
 
 const selectedViewingOption = ref('Show capabilities')
+const showLibraryRules = ref(false)
 
 const updateViewingOption = (option) => {
   selectedViewingOption.value = option.value
+}
+
+const updateShowLibraryRules = (value) => {
+  showLibraryRules.value = value
 }
 
 const checkVersion = (data) => {
@@ -163,18 +167,24 @@ const loadDemoData = () => {
   </Panel>
   <Toast />
   <MetadataTable v-if="jsonData" :data="jsonData"> </MetadataTable>
-  <SettingsPanel v-if="jsonData" @update:viewing-option="updateViewingOption"></SettingsPanel>
-  <!-- <CapasByProcess v-if="jsonData && selectedViewingOption === 'Show capabilities'" :data="jsonData">
-  </CapasByProcess> -->
-  <CapaTreeTable v-if="jsonData && selectedViewingOption === 'Show capabilities'" :data="jsonData">
+  <SettingsPanel
+    v-if="jsonData"
+    @update:viewing-option="updateViewingOption"
+    @update:show-library-rules="updateShowLibraryRules"
+  ></SettingsPanel>
+  <CapaTreeTable
+    v-if="jsonData && selectedViewingOption === 'Show capabilities'"
+    :data="jsonData"
+    :show-library-rules="showLibraryRules"
+  >
   </CapaTreeTable>
   <CapasByFunction
     v-if="jsonData && selectedViewingOption === 'Show capabilities by function'"
     :data="jsonData"
+    :show-library-rules="showLibraryRules"
   >
   </CapasByFunction>
 </template>
-
 <style scoped>
 .multi-column-container {
   padding: 0 24px;

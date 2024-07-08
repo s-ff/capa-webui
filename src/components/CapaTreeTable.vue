@@ -1,7 +1,7 @@
 <template>
   <div class="card">
     <TreeTable
-      :value="treeData"
+      :value="filteredTreeData"
       v-model:expandedKeys="expandedKeys"
       size="small"
       :filters="filters"
@@ -27,10 +27,9 @@
           "
         >
           <Button icon="pi pi-expand" @click="toggleAll" label="Toggle All" />
-
           <IconField>
             <InputIcon class="pi pi-search" />
-            <InputText v-model="filters['global']" placeholder="Global Search" />
+            <InputText v-model="filters['global']" placeholder="Global search" />
           </IconField>
         </div>
       </template>
@@ -51,7 +50,7 @@
           />
         </template>
         <template #body="slotProps">
-          <span
+          <div
             :style="{
               color:
                 !slotProps.node.children || slotProps.node.children.length === 0
@@ -66,12 +65,26 @@
             }"
           >
             {{ slotProps.node.data.name }}
-          </span>
-          <Badge
-            v-if="slotProps.node.data.matchCount > 1"
-            :value="`${slotProps.node.data.matchCount} matches`"
-            severity="contrast"
-          ></Badge>
+            <span v-if="slotProps.node.data.description" style="font-size: 90%; color: grey"
+              >{{ '  ' + slotProps.node.data.description }}
+            </span>
+            <Badge
+              v-if="slotProps.node.data.matchCount > 1"
+              :value="`${slotProps.node.data.matchCount} matches`"
+              severity="contrast"
+            ></Badge>
+            <Tag
+              v-if="slotProps.node.data.lib && slotProps.node.data.matchCount"
+              class="info-tooltip"
+              v-tooltip.top="{
+                value: 'Library rules capture common logic',
+                showDelay: 100,
+                hideDelay: 100
+              }"
+              value="lib"
+              severity="info"
+            ></Tag>
+          </div>
         </template>
       </Column>
 
@@ -79,7 +92,7 @@
         <template #filter>
           <InputText v-model="filters['address']" type="text" placeholder="Filter by address" />
           <span
-            class="address-tooltip"
+            class="info-tooltip"
             v-tooltip="
               'Features might match in multiple locations. Only the fist match location is shown.'
             "
@@ -87,6 +100,7 @@
             <i class="pi pi-info-circle" />
           </span>
         </template>
+        <template #body="slotProps"> {{ slotProps.node.data.address }} </template>
       </Column>
 
       <Column field="namespace" sortable header="Namespace" filterMatchMode="contains">
@@ -94,12 +108,15 @@
           <InputText v-model="filters['namespace']" type="text" placeholder="Filter by namespace" />
         </template>
         <template #body="slotProps">
-          <Tag
-            v-if="slotProps.node.data.namespace"
-            :style="getNamespaceStyle(slotProps.node.data.namespace)"
-          >
+          <span v-if="!slotProps.node.data.lib">
+            <!-- <Tag
+              v-if="slotProps.node.data.namespace"
+              :style="getNamespaceStyle(slotProps.node.data.namespace)"
+            >
+              {{ slotProps.node.data.namespace }}
+            </Tag> -->
             {{ slotProps.node.data.namespace }}
-          </Tag>
+          </span>
         </template>
       </Column>
 
@@ -121,7 +138,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import TreeTable from 'primevue/treetable'
 import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
@@ -136,6 +153,10 @@ const props = defineProps({
   data: {
     type: Object,
     required: true
+  },
+  showLibraryRules: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -146,6 +167,25 @@ const sourceDialogVisible = ref(false)
 const currentSource = ref('')
 const expandedKeys = ref({})
 const selectedNodeKeys = ref([])
+
+// Filter out the treeData for showing/hiding lib rules
+const filteredTreeData = computed(() => {
+  if (props.showLibraryRules) {
+    return treeData.value // Return all data when showLibraryRules is true
+  } else {
+    // Filter out library rules when showLibraryRules is false
+    const filterNode = (node) => {
+      if (node.data && node.data.lib) {
+        return false
+      }
+      if (node.children) {
+        node.children = node.children.filter(filterNode)
+      }
+      return true
+    }
+    return treeData.value.filter(filterNode)
+  }
+})
 
 const showSource = (source) => {
   currentSource.value = source
@@ -170,7 +210,7 @@ const invertNotStatementSuccess = (node) => {
   return invertedNode
 }
 
-const parseNode = (node, parentKey, index, rules) => {
+const parseNode = (node, parentKey, index, rules, lib) => {
   if (!node) return null
 
   const isNotStatement = node.node.statement && node.node.statement.type === 'not'
@@ -189,7 +229,12 @@ const parseNode = (node, parentKey, index, rules) => {
     data: {
       success: processedNode.success,
       name: getNodeName(processedNode),
+      lib: lib,
       address: getNodeAddress(processedNode),
+      description:
+        processedNode.node === 'statement'
+          ? processedNode.node.statement?.description
+          : processedNode.node.feature?.description,
       namespace: null,
       matchCount: null,
       source: null
@@ -199,7 +244,7 @@ const parseNode = (node, parentKey, index, rules) => {
 
   if (processedNode.children && Array.isArray(processedNode.children)) {
     result.children = processedNode.children
-      .map((child, childIndex) => parseNode(child, key, childIndex, rules))
+      .map((child, childIndex) => parseNode(child, key, childIndex, rules, lib))
       .filter((child) => child !== null)
   }
 
@@ -261,7 +306,8 @@ const getNodeName = (node) => {
       return `${node.node.feature.type}: 0x${value.toString(16).toUpperCase()}`
     } else if (node.node.feature.type === 'operand offset') {
       const value = node.node.feature.operand_offset
-      return `operand[${node.node.feature.index}].offset: 0x${value.toString(16).toUpperCase()} = ${node.node.feature.description}`
+      return `operand[${node.node.feature.index}].offset: 0x${value.toString(16).toUpperCase()}`
+      //return `operand[${node.node.feature.index}].offset: 0x${value.toString(16).toUpperCase()} = ${node.node.feature.description}`
     } else {
       return `${node.node.feature.type}: ${node.node.feature[node.node.feature.type]}`
     }
@@ -284,13 +330,16 @@ const parseRules = (rules) => {
     key: index.toString(),
     data: {
       name: rule.meta.name,
+      lib: rule.meta.lib,
       matchCount: rule.matches.length,
       namespace: rule.meta.namespace,
       address: null,
       source: rule.source
     },
     children: rule.matches
-      .map((match, matchIndex) => parseNode(match[1], index.toString(), matchIndex, rules))
+      .map((match, matchIndex) =>
+        parseNode(match[1], index.toString(), matchIndex, rules, rule.meta.lib)
+      )
       .filter((child) => child !== null)
   }))
 }
@@ -324,7 +373,7 @@ function getNamespaceStyle(namespace) {
   }
 }
 
-// Expand All/Collapse All
+// Expand/Collapse All nodes
 const toggleAll = () => {
   let _expandedKeys = {}
 
@@ -360,7 +409,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.address-tooltip {
+.info-tooltip {
   margin-left: 10px;
 }
 </style>
