@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import FileUpload from 'primevue/fileupload'
 import { useToast } from 'primevue/usetoast'
-import Toast from 'primevue/toast'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import DescriptionPanel from '../components/DescriptionPanel.vue'
@@ -10,11 +9,15 @@ import MetadataTable from '../components/MetadataTable.vue'
 import CapaTreeTable from '../components/CapaTreeTable.vue'
 import SettingsPanel from '../components/SettingsPanel.vue'
 import CapasByFunction from '../components/CapasByFunction.vue'
+import CustomToast from '../components/CustomToast.vue'
 
 import demoRdoc from '../assets/data/demo-rdoc.json'
 
+const MIN_VERSION = '7.0.0'
+
 const toast = useToast()
 const jsonData = ref(null)
+const isValidVersion = ref(false)
 
 const selectedViewingOption = ref('Show capabilities')
 const showLibraryRules = ref(false)
@@ -29,13 +32,14 @@ const updateShowLibraryRules = (value) => {
 
 const checkVersion = (data) => {
   const version = data.meta.version
-  if (version < '7.0.0') {
+  if (version < MIN_VERSION) {
     console.log(`Version ${version} is not supported. Please use version 7.0.0 or higher.`)
     toast.add({
       severity: 'error',
       summary: 'Unsupported Version',
       detail: `Version ${version} is not supported. Please use version 7.0.0 or higher.`,
-      life: 5000
+      life: 5000,
+      group: 'bc'
     })
     return false
   }
@@ -51,12 +55,17 @@ const onUpload = (event) => {
       const data = JSON.parse(e.target.result)
       if (checkVersion(data)) {
         jsonData.value = data
+        isValidVersion.value = true
         toast.add({
           severity: 'success',
           summary: 'Success',
-          detail: 'JSON file uploaded successfully',
-          life: 3000
+          detail: 'JSON data loaded successfully',
+          life: 3000,
+          group: 'bc'
         })
+      } else {
+        jsonData.value = null
+        isValidVersion.value = false
       }
     } catch (error) {
       console.error('Error parsing JSON:', error)
@@ -64,7 +73,8 @@ const onUpload = (event) => {
         severity: 'error',
         summary: 'Error',
         detail: 'Failed to parse JSON file',
-        life: 3000
+        life: 3000,
+        group: 'bc'
       })
     }
   }
@@ -87,12 +97,17 @@ const loadFromURL = async () => {
     const data = await response.json()
     if (checkVersion(data)) {
       jsonData.value = data
+      isValidVersion.value = true
       toast.add({
         severity: 'success',
         summary: 'Success',
         detail: 'JSON data loaded successfully',
-        life: 3000
+        life: 3000,
+        group: 'bc'
       })
+    } else {
+      jsonData.value = null
+      isValidVersion.value = false
     }
   } catch (error) {
     console.error('Error loading JSON from URL:', error)
@@ -100,7 +115,8 @@ const loadFromURL = async () => {
       severity: 'error',
       summary: 'Error',
       detail: error.message,
-      life: 3000
+      life: 3000,
+      group: 'bc'
     })
   }
 }
@@ -108,12 +124,17 @@ const loadFromURL = async () => {
 const loadDemoData = () => {
   if (checkVersion(demoRdoc)) {
     jsonData.value = demoRdoc
+    isValidVersion.value = true
     toast.add({
       severity: 'success',
       summary: 'Success',
       detail: 'Demo data loaded successfully',
-      life: 3000
+      life: 3000,
+      group: 'bc'
     })
+  } else {
+    jsonData.value = null
+    isValidVersion.value = false
   }
 }
 </script>
@@ -165,26 +186,26 @@ const loadDemoData = () => {
       </template>
     </Card>
   </Panel>
-  <Toast />
-  <MetadataTable v-if="jsonData" :data="jsonData"> </MetadataTable>
-  <SettingsPanel
-    v-if="jsonData"
-    @update:viewing-option="updateViewingOption"
-    @update:show-library-rules="updateShowLibraryRules"
-  ></SettingsPanel>
-  <CapaTreeTable
-    v-if="jsonData && selectedViewingOption === 'Show capabilities'"
-    :data="jsonData"
-    :show-library-rules="showLibraryRules"
-  >
-  </CapaTreeTable>
-  <CapasByFunction
-    v-if="jsonData && selectedViewingOption === 'Show capabilities by function'"
-    :data="jsonData"
-    :show-library-rules="showLibraryRules"
-  >
-  </CapasByFunction>
+  <CustomToast />
+  <template v-if="jsonData && isValidVersion">
+    <MetadataTable :data="jsonData" />
+    <SettingsPanel
+      @update:viewing-option="updateViewingOption"
+      @update:show-library-rules="updateShowLibraryRules"
+    />
+    <CapaTreeTable
+      v-if="selectedViewingOption === 'Show capabilities'"
+      :data="jsonData"
+      :show-library-rules="showLibraryRules"
+    />
+    <CapasByFunction
+      v-if="selectedViewingOption === 'Show capabilities by function'"
+      :data="jsonData"
+      :show-library-rules="showLibraryRules"
+    />
+  </template>
 </template>
+
 <style scoped>
 .multi-column-container {
   padding: 0 24px;

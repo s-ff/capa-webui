@@ -24,19 +24,15 @@ const MIN_LIBFUNCS_RATIO = 0.4 // Adjust this value as needed
 
 const parseMetadata = () => {
   if (props.data) {
-    const version = props.data.meta.version
-    const analysisData =
-      version === '7.0.0' ? props.data.meta.static_analysis : props.data.meta.analysis
-
     metadata.value = [
       { key: 'MD5', value: props.data.meta.sample.md5.toUpperCase() },
       { key: 'SHA1', value: props.data.meta.sample.sha1.toUpperCase() },
       { key: 'SHA256', value: props.data.meta.sample.sha256.toUpperCase() },
-      { key: 'Extractor', value: analysisData.extractor },
+      { key: 'Extractor', value: props.data.meta.analysis.extractor },
       { key: 'Analysis', value: props.data.meta.flavor },
-      { key: 'OS', value: analysisData.os },
-      { key: 'Format', value: analysisData.format },
-      { key: 'Arch', value: analysisData.arch },
+      { key: 'OS', value: props.data.meta.analysis.os },
+      { key: 'Format', value: props.data.meta.analysis.format },
+      { key: 'Arch', value: props.data.meta.analysis.arch },
       { key: 'Path', value: props.data.meta.sample.path },
       { key: 'Version', value: props.data.meta.version },
       { key: 'Timestamp', value: props.data.meta.timestamp }
@@ -45,19 +41,16 @@ const parseMetadata = () => {
       ? metadata.value.push(
           {
             key: 'Base Address',
-            value:
-              version === '7.0.0' && props.data.meta.flavor === 'static'
-                ? '0x' + analysisData.base_address.v.u.toString(16).toUpperCase()
-                : '0x' + analysisData.base_address.value.toString(16).toUpperCase()
+            value: props.data.meta.flavor
           },
           {
             key: 'Function Count',
-            value: analysisData.feature_counts.functions.length
+            value: props.data.meta.analysis.feature_counts.functions.length
           }
         )
       : metadata.value.push({
           key: 'Process Count',
-          value: analysisData.feature_counts.processes.length
+          value: props.data.meta.analysis.feature_counts.processes.length
         })
 
     // Populate footer data
@@ -71,11 +64,11 @@ const parseMetadata = () => {
 
     // Calculate the ratio of library functions
     props.data.meta.flavor === 'static'
-      ? (functionCount.value = analysisData.feature_counts.functions.length)
-      : (processCount.value = analysisData.feature_counts.processes.length)
+      ? (functionCount.value = props.data.meta.analysis.feature_counts.functions.length)
+      : (processCount.value = props.data.meta.analysis.feature_counts.processes.length)
 
-    const nLibs = analysisData.library_functions.length
-    const nFuncs = analysisData.feature_counts.functions.length
+    const nLibs = props.data.meta.analysis.library_functions.length
+    const nFuncs = props.data.meta.analysis.feature_counts.functions.length
     libRatio.value = nFuncs + nLibs > 0 ? nLibs / (nFuncs + nLibs) : 0
   }
 }
