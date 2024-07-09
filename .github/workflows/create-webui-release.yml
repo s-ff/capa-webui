@@ -1,10 +1,10 @@
-name: Create Bundle Release
+name: Create WebUI standalone release
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Initial release'
+        description: 'Version number for this release (e.g., v1.0.0)'
         required: true
 
 permissions:
