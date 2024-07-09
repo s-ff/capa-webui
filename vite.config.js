@@ -6,7 +6,7 @@ export default defineConfig(({ command, mode }) => {
   const isBundle = mode === 'bundle'
 
   return {
-    base: isBundle ? './capa-webui' : '/',
+    base: isBundle ? '/' : '/capa-webui',
     plugins: isBundle ? [vue(), viteSingleFile()] : [vue()]
   }
 })
