@@ -1,23 +1,12 @@
-//import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { viteSingleFile } from 'vite-plugin-singlefile'
 
-export default defineConfig({
-  base: '/capa-webui',
-  plugins: [vue()]
+export default defineConfig(({ command, mode }) => {
+  const isBundle = mode === 'bundle'
+
+  return {
+    base: isBundle ? './capa-webui' : '/',
+    plugins: isBundle ? [vue(), viteSingleFile()] : [vue()]
+  }
 })
-
-// export default defineConfig({
-//   plugins: [vue(), viteSingleFile()]
-// })
-
-// https://vitejs.dev/config/
-// export default defineConfig({
-//   plugins: [vue(), viteSingleFile()],
-//   resolve: {
-//     alias: {
-//       '@': fileURLToPath(new URL('./src', import.meta.url))
-//     }
-//   }
-// })
