@@ -13,6 +13,7 @@
     removableSort
     :showGridlines="false"
     :indentation="2"
+    row-hover="true"
   >
     <template #header>
       <div

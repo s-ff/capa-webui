@@ -3,11 +3,11 @@
     <div class="banner-title">This is a pre-alpha release</div>
     <div class="banner-description">
       <span>Please report any bugs, enhacements or features in the </span>
+      <a v-ripple href="https://github.com/mandiant/capa/issues" class="learn-more-link">
+        <span>Github issues</span>
+        <i id="github-icon" class="pi pi-github"></i>
+      </a>
     </div>
-    <a v-ripple href="https://github.com/mandiant/capa/issues" class="learn-more-link">
-      <span>Github issues</span>
-      <i id="github-icon" class="pi pi-github"></i>
-    </a>
     <a v-ripple class="close-button" @click="closeBanner">
       <i class="pi pi-times"></i>
     </a>

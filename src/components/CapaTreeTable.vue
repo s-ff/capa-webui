@@ -15,7 +15,7 @@
       :showGridlines="false"
       :indentation="2"
       v-model:selectionKeys="selectedNodeKeys"
-      selectionMode="checkbox"
+      row-hover="true"
     >
       <template #header>
         <div
@@ -40,6 +40,7 @@
         </div>
       </template>
 
+      <!-- Name -->
       <Column field="name" header="Rule" sortable expander filterMatchMode="contains">
         <template #filter>
           <InputText
@@ -88,6 +89,7 @@
         </template>
       </Column>
 
+      <!-- Address -->
       <Column
         v-if="props.data.meta.flavor === 'static'"
         field="address"
@@ -107,6 +109,43 @@
           </span>
         </template>
         <template #body="slotProps"> {{ slotProps.node.data.address }} </template>
+      </Column>
+
+      <!-- Tactic -->
+      <Column field="tactic" header="Tactic" sortable filterMatchMode="contains">
+        <template #filter>
+          <InputText
+            v-model="filters['tactic']"
+            type="text"
+            placeholder="Filter by tactic or technique"
+          />
+        </template>
+        <template #body="slotProps">
+          <div v-if="slotProps.node.data.attack">
+            <div v-for="(attack, index) in slotProps.node.data.attack" :key="index">
+              <a :href="'https://attack.mitre.org/techniques/' + attack.id" target="_blank">
+                {{ attack.tactic }} ({{ attack.id }})
+              </a>
+              <div
+                v-for="(technique, techIndex) in attack.techniques"
+                :key="techIndex"
+                style="font-size: 0.8em; margin-left: 1em"
+              >
+                <a
+                  :href="
+                    'https://attack.mitre.org/techniques/' +
+                    technique.id.split('.')[0] +
+                    '/' +
+                    technique.id.split('.')[1]
+                  "
+                  target="_blank"
+                >
+                  ↳ {{ technique.technique }} ({{ technique.id }})
+                </a>
+              </div>
+            </div>
+          </div>
+        </template>
       </Column>
 
       <Column field="namespace" sortable header="Namespace" filterMatchMode="contains">
@@ -313,7 +352,6 @@ const getNodeName = (node) => {
     } else if (node.node.feature.type === 'operand offset') {
       const value = node.node.feature.operand_offset
       return `operand[${node.node.feature.index}].offset: 0x${value.toString(16).toUpperCase()}`
-      //return `operand[${node.node.feature.index}].offset: 0x${value.toString(16).toUpperCase()} = ${node.node.feature.description}`
     } else {
       return `${node.node.feature.type}: ${node.node.feature[node.node.feature.type]}`
     }
@@ -337,7 +375,17 @@ const parseRules = (rules) => {
       matchCount: rule.matches.length,
       namespace: rule.meta.namespace,
       address: null,
-      source: rule.source
+      source: rule.source,
+      tactic: JSON.stringify(rule.meta.attack),
+      attack: rule.meta.attack
+        ? rule.meta.attack.map((attack) => ({
+            tactic: attack.tactic,
+            id: attack.id.includes('.') ? attack.id.split('.')[0] : attack.id,
+            techniques: attack.subtechnique
+              ? [{ technique: attack.subtechnique, id: attack.id }]
+              : []
+          }))
+        : null
     },
     children: rule.matches
       .map((match, matchIndex) =>
@@ -346,7 +394,6 @@ const parseRules = (rules) => {
       .filter((child) => child !== null)
   }))
 }
-
 const namespaceColors = {
   'anti-analysis': { background: '#e0f2fe', text: '#075985' },
   collection: { background: '#fef3c7', text: '#92400e' },
@@ -414,5 +461,10 @@ onMounted(() => {
 <style scoped>
 .info-tooltip {
   margin-left: 10px;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
 }
 </style>
