@@ -12,7 +12,8 @@ import CapasByProcess from '../components/CapasByProcess.vue'
 import SettingsPanel from '../components/SettingsPanel.vue'
 import CustomToast from '../components/CustomToast.vue'
 
-import demoRdoc from '../assets/data/demo-rdoc.json'
+import demoRdocStatic from '../assets/data/demo-rdoc.json'
+import demoRdocDynamic from '../assets/data/demo-rdoc-dynamic.json'
 
 const toast = useToast()
 const jsonData = ref(null)
@@ -122,15 +123,32 @@ const loadFromURL = async () => {
   }
 }
 
-const loadDemoData = () => {
-  if (checkVersion(demoRdoc)) {
-    jsonData.value = demoRdoc
+const loadDemoDataStatic = () => {
+  if (checkVersion(demoRdocStatic)) {
+    jsonData.value = demoRdocStatic
     isValidVersion.value = true
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Demo data loaded successfully',
-      life: 3000,
+      detail: 'Static semo data loaded successfully',
+      life: 2000,
+      group: 'bc'
+    })
+  } else {
+    jsonData.value = null
+    isValidVersion.value = false
+  }
+}
+
+const loadDemoDataDynamic = () => {
+  if (checkVersion(demoRdocDynamic)) {
+    jsonData.value = demoRdocDynamic
+    isValidVersion.value = true
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Dynamic demo data loaded successfully',
+      life: 2000,
       group: 'bc'
     })
   } else {
@@ -180,7 +198,15 @@ const loadDemoData = () => {
           </div>
           <div class="md-column">
             <div class="load-demo-button">
-              <Button label="Preview Demo" @click="loadDemoData" />
+              <Button label="Preview Static" @click="loadDemoDataStatic" />
+            </div>
+          </div>
+          <div class="or-column">
+            <b>OR</b>
+          </div>
+          <div class="md-column">
+            <div class="load-demo-button">
+              <Button label="Preview Dynamic" @click="loadDemoDataDynamic" />
             </div>
           </div>
         </div>
