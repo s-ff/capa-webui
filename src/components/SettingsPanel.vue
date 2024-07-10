@@ -3,16 +3,12 @@
     <template #content>
       <div class="settings-panel">
         <div class="checkbox-container">
-          <label for="viewing-options" style="width: 100%">Select a viewing mode: </label>
-          <Dropdown
-            id="viewing-options"
-            v-model="selectedViewingOption"
-            :options="viewingOptions"
-            optionLabel="label"
-            placeholder="Select a viewing mode"
-            class="dropdown-field"
-            @change="emitViewingOption"
+          <Checkbox
+            v-model="showCapabilitiesByFunctionOrProcess"
+            inputId="showCapabilitiesByFunctionOrProcess"
+            :binary="true"
           />
+          <label for="showCapabilitiesByFunctionOrProcess">{{ capabilitiesLabel }}</label>
         </div>
         <div class="checkbox-container">
           <Checkbox v-model="showLibraryRules" inputId="showLibraryRules" :binary="true" />
@@ -24,23 +20,33 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import Dropdown from 'primevue/dropdown'
+import { ref, computed, watch } from 'vue'
 import Checkbox from 'primevue/checkbox'
 
-const viewingOptions = [
-  { label: 'Show capabilities', value: 'Show capabilities' },
-  { label: 'Show capabilities by function', value: 'Show capabilities by function' }
-]
+const props = defineProps({
+  flavor: {
+    type: String,
+    required: true
+  }
+})
 
-const selectedViewingOption = ref('Show capabilities')
+const showCapabilitiesByFunctionOrProcess = ref(false)
 const showLibraryRules = ref(false)
 
-const emit = defineEmits(['update:viewing-option', 'update:show-library-rules'])
+const emit = defineEmits([
+  'update:show-capabilities-by-function-or-process',
+  'update:show-library-rules'
+])
 
-const emitViewingOption = () => {
-  emit('update:viewing-option', selectedViewingOption.value)
-}
+const capabilitiesLabel = computed(() => {
+  return props.flavor === 'static'
+    ? 'Show capabilities by function'
+    : 'Show capabilities by process'
+})
+
+watch(showCapabilitiesByFunctionOrProcess, (newValue) => {
+  emit('update:show-capabilities-by-function-or-process', newValue)
+})
 
 watch(showLibraryRules, (newValue) => {
   emit('update:show-library-rules', newValue)

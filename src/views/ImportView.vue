@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import FileUpload from 'primevue/fileupload'
 import { useToast } from 'primevue/usetoast'
 import InputText from 'primevue/inputtext'
@@ -7,23 +7,24 @@ import Button from 'primevue/button'
 import DescriptionPanel from '../components/DescriptionPanel.vue'
 import MetadataTable from '../components/MetadataTable.vue'
 import CapaTreeTable from '../components/CapaTreeTable.vue'
-import SettingsPanel from '../components/SettingsPanel.vue'
 import CapasByFunction from '../components/CapasByFunction.vue'
+import CapasByProcess from '../components/CapasByProcess.vue'
+import SettingsPanel from '../components/SettingsPanel.vue'
 import CustomToast from '../components/CustomToast.vue'
 
 import demoRdoc from '../assets/data/demo-rdoc.json'
-
-const MIN_VERSION = '7.0.0'
 
 const toast = useToast()
 const jsonData = ref(null)
 const isValidVersion = ref(false)
 
-const selectedViewingOption = ref('Show capabilities')
+const showCapabilitiesByFunctionOrProcess = ref(false)
 const showLibraryRules = ref(false)
 
-const updateViewingOption = (option) => {
-  selectedViewingOption.value = option.value
+const flavor = computed(() => jsonData.value.meta.flavor)
+
+const updateShowCapabilitiesByFunctionOrProcess = (value) => {
+  showCapabilitiesByFunctionOrProcess.value = value
 }
 
 const updateShowLibraryRules = (value) => {
@@ -32,7 +33,7 @@ const updateShowLibraryRules = (value) => {
 
 const checkVersion = (data) => {
   const version = data.meta.version
-  if (version < MIN_VERSION) {
+  if (version < '7.0.0') {
     console.log(`Version ${version} is not supported. Please use version 7.0.0 or higher.`)
     toast.add({
       severity: 'error',
@@ -190,17 +191,26 @@ const loadDemoData = () => {
   <template v-if="jsonData && isValidVersion">
     <MetadataTable :data="jsonData" />
     <SettingsPanel
-      @update:viewing-option="updateViewingOption"
+      :flavor="flavor"
+      @update:show-capabilities-by-function-or-process="updateShowCapabilitiesByFunctionOrProcess"
       @update:show-library-rules="updateShowLibraryRules"
     />
+
     <CapaTreeTable
-      v-if="selectedViewingOption === 'Show capabilities'"
+      v-if="!showCapabilitiesByFunctionOrProcess"
       :data="jsonData"
       :show-library-rules="showLibraryRules"
     />
     <CapasByFunction
-      v-if="selectedViewingOption === 'Show capabilities by function'"
+      v-if="flavor === 'static' && showCapabilitiesByFunctionOrProcess"
       :data="jsonData"
+      :show-library-rules="showLibraryRules"
+    />
+
+    <CapasByProcess
+      v-else-if="flavor === 'dynamic' && showCapabilitiesByFunctionOrProcess"
+      :data="jsonData"
+      :show-capabilities-by-process="showCapabilitiesByFunctionOrProcess"
       :show-library-rules="showLibraryRules"
     />
   </template>
@@ -227,9 +237,6 @@ const loadDemoData = () => {
     flex-flow: row;
     gap: 10px;
   }
-  /* .form-field .load-button {
-    width: 100%;
-  } */
   .md-column {
     width: 40%;
   }

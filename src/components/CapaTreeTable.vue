@@ -88,7 +88,13 @@
         </template>
       </Column>
 
-      <Column field="address" sortable header="Address" filterMatchMode="contains">
+      <Column
+        v-if="props.data.meta.flavor === 'static'"
+        field="address"
+        sortable
+        header="Address"
+        filterMatchMode="contains"
+      >
         <template #filter>
           <InputText v-model="filters['address']" type="text" placeholder="Filter by address" />
           <span
@@ -138,7 +144,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import TreeTable from 'primevue/treetable'
 import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
@@ -318,9 +324,6 @@ const getNodeName = (node) => {
 const getNodeAddress = (node) => {
   if (node.locations && node.locations.length > 0 && node.locations[0].type === 'absolute') {
     return `0x${node.locations[0].value.toString(16).toUpperCase()}`
-    // return props.data.meta.version === '7.0.0'
-    //   ? 'TODO'
-    //   : `0x${node.locations[0].value.toString(16).toUpperCase()}`
   }
   return null
 }

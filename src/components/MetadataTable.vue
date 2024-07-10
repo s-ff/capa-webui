@@ -41,7 +41,7 @@ const parseMetadata = () => {
       ? metadata.value.push(
           {
             key: 'Base Address',
-            value: props.data.meta.flavor
+            value: '0x' + props.data.meta.analysis.base_address.value.toString(16).toUpperCase()
           },
           {
             key: 'Function Count',
@@ -63,13 +63,15 @@ const parseMetadata = () => {
     namespaceCount.value = namespaces.size
 
     // Calculate the ratio of library functions
-    props.data.meta.flavor === 'static'
-      ? (functionCount.value = props.data.meta.analysis.feature_counts.functions.length)
-      : (processCount.value = props.data.meta.analysis.feature_counts.processes.length)
+    if (props.data.meta.flavor === 'static') {
+      functionCount.value = props.data.meta.analysis.feature_counts.functions.length
 
-    const nLibs = props.data.meta.analysis.library_functions.length
-    const nFuncs = props.data.meta.analysis.feature_counts.functions.length
-    libRatio.value = nFuncs + nLibs > 0 ? nLibs / (nFuncs + nLibs) : 0
+      const nLibs = props.data.meta.analysis.library_functions.length
+      const nFuncs = props.data.meta.analysis.feature_counts.functions.length
+      libRatio.value = nFuncs + nLibs > 0 ? nLibs / (nFuncs + nLibs) : 0
+    } else {
+      processCount.value = props.data.meta.analysis.feature_counts.processes.length
+    }
   }
 }
 
