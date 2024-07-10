@@ -15,18 +15,27 @@
       :showGridlines="false"
       :indentation="2"
       v-model:selectionKeys="selectedNodeKeys"
-      row-hover="true"
+      :row-hover="true"
     >
       <template #header>
         <div
           style="
-            margin-bottom: 16px;
-            margin-left: 16px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
           "
         >
           <Button icon="pi pi-expand" @click="toggleAll" label="Toggle All" />
+          <MultiSelect
+            :modelValue="visibleColumns"
+            @update:modelValue="onToggle"
+            :options="togglableColumns"
+            optionLabel="header"
+            class="w-full sm:w-64"
+            display="chip"
+            placeholder="Toggle columns"
+          />
           <IconField>
             <InputIcon class="pi pi-search" />
             <InputText v-model="filters['global']" placeholder="Global search" />
@@ -40,14 +49,20 @@
         </div>
       </template>
 
-      <!-- Name -->
-      <Column field="name" header="Rule" sortable expander filterMatchMode="contains">
-        <template #filter>
+      <!-- Name column (always visible) -->
+      <Column
+        field="name"
+        header="Rule"
+        :sortable="true"
+        :expander="true"
+        filterMatchMode="contains"
+      >
+        <template #filter="{ filterModel, filterCallback }">
           <InputText
-            style="width: 70%"
             v-model="filters['name']"
             type="text"
-            placeholder="Filter by rule or nested feature"
+            @input="filterCallback()"
+            placeholder="Filter by rule"
           />
         </template>
         <template #body="slotProps">
@@ -66,8 +81,8 @@
             }"
           >
             {{ slotProps.node.data.name }}
-            <span v-if="slotProps.node.data.description" style="font-size: 90%; color: grey"
-              >{{ '  ' + slotProps.node.data.description }}
+            <span v-if="slotProps.node.data.description" style="font-size: 90%; color: grey">
+              {{ '  ' + slotProps.node.data.description }}
             </span>
             <Badge
               v-if="slotProps.node.data.matchCount > 1"
@@ -89,38 +104,31 @@
         </template>
       </Column>
 
-      <!-- Address -->
       <Column
-        v-if="props.data.meta.flavor === 'static'"
-        field="address"
-        sortable
-        header="Address"
+        v-for="col in visibleColumns"
+        :key="col.field"
+        :field="col.field"
+        :header="col.header"
+        :sortable="col.field !== 'source'"
         filterMatchMode="contains"
       >
-        <template #filter>
-          <InputText v-model="filters['address']" type="text" placeholder="Filter by address" />
-          <span
-            class="info-tooltip"
-            v-tooltip="
-              'Features might match in multiple locations. Only the fist match location is shown.'
-            "
-          >
-            <i class="pi pi-info-circle" />
-          </span>
-        </template>
-        <template #body="slotProps"> {{ slotProps.node.data.address }} </template>
-      </Column>
-
-      <!-- Tactic -->
-      <Column field="tactic" header="Tactic" sortable filterMatchMode="contains">
-        <template #filter>
+        <!-- Filter template -->
+        <template #filter="{ filterModel, filterCallback }" v-if="col.field !== 'source'">
           <InputText
-            v-model="filters['tactic']"
+            v-model="filters[col.field]"
             type="text"
-            placeholder="Filter by tactic or technique"
+            @input="filterCallback()"
+            :placeholder="`Filter by ${col.header.toLowerCase()}`"
           />
         </template>
-        <template #body="slotProps">
+
+        <!-- Address column body template -->
+        <template v-if="col.field === 'address'" #body="slotProps">
+          {{ slotProps.node.data.address }}
+        </template>
+
+        <!-- Tactic column body template -->
+        <template v-if="col.field === 'tactic'" #body="slotProps">
           <div v-if="slotProps.node.data.attack">
             <div v-for="(attack, index) in slotProps.node.data.attack" :key="index">
               <a :href="'https://attack.mitre.org/techniques/' + attack.id" target="_blank">
@@ -146,27 +154,16 @@
             </div>
           </div>
         </template>
-      </Column>
 
-      <Column field="namespace" sortable header="Namespace" filterMatchMode="contains">
-        <template #filter>
-          <InputText v-model="filters['namespace']" type="text" placeholder="Filter by namespace" />
-        </template>
-        <template #body="slotProps">
+        <!-- Namespace column body template -->
+        <template v-if="col.field === 'namespace'" #body="slotProps">
           <span v-if="!slotProps.node.data.lib">
-            <!-- <Tag
-              v-if="slotProps.node.data.namespace"
-              :style="getNamespaceStyle(slotProps.node.data.namespace)"
-            >
-              {{ slotProps.node.data.namespace }}
-            </Tag> -->
             {{ slotProps.node.data.namespace }}
           </span>
         </template>
-      </Column>
 
-      <Column field="source" header="Source">
-        <template #body="slotProps">
+        <!-- Source column body template -->
+        <template v-if="col.field === 'source'" #body="slotProps">
           <Button
             v-if="slotProps.node.data.source"
             icon="pi pi-external-link"
@@ -193,6 +190,7 @@ import Button from 'primevue/button'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import Badge from 'primevue/badge'
+import MultiSelect from 'primevue/multiselect'
 
 const props = defineProps({
   data: {
@@ -212,6 +210,23 @@ const sourceDialogVisible = ref(false)
 const currentSource = ref('')
 const expandedKeys = ref({})
 const selectedNodeKeys = ref([])
+
+// All available columns
+const togglableColumns = ref([
+  { field: 'address', header: 'Address' },
+  { field: 'tactic', header: 'Tactic' },
+  { field: 'namespace', header: 'Namespace' },
+  { field: 'source', header: 'Source' }
+])
+
+// Define initially visible columns
+const visibleColumns = ref(togglableColumns.value)
+// Define initially visible columns (excluding 'tactic')
+// const visibleColumns = ref(allColumns.value.filter((col) => col.field !== 'tactic'))
+
+const onToggle = (val) => {
+  visibleColumns.value = togglableColumns.value.filter((col) => val.includes(col))
+}
 
 // Filter out the treeData for showing/hiding lib rules
 const filteredTreeData = computed(() => {
@@ -394,34 +409,34 @@ const parseRules = (rules) => {
       .filter((child) => child !== null)
   }))
 }
-const namespaceColors = {
-  'anti-analysis': { background: '#e0f2fe', text: '#075985' },
-  collection: { background: '#fef3c7', text: '#92400e' },
-  communication: { background: '#dcfce7', text: '#166534' },
-  compiler: { background: '#fae8ff', text: '#86198f' },
-  'data-manipulation': { background: '#e2e8f0', text: '#334155' },
-  executable: { background: '#ffedd5', text: '#9a3412' },
-  'host-interaction': { background: '#f1f5f9', text: '#475569' },
-  impact: { background: '#fef2f2', text: '#991b1b' },
-  internal: { background: '#e0e7ff', text: '#3730a3' },
-  lib: { background: '#fdf4ff', text: '#9d174d' },
-  linking: { background: '#f5f3ff', text: '#6b21a8' },
-  'load-code': { background: '#fff7ed', text: '#c2410c' },
-  'malware-family': { background: '#fae8ff', text: '#86198f' },
-  nursery: { background: '#f4f4f5', text: '#44403c' },
-  persistence: { background: '#fff1f2', text: '#9f1239' },
-  runtime: { background: '#dbeafe', text: '#1e3a8a' },
-  targeting: { background: '#f0fdf4', text: '#14532d' }
-}
+// const namespaceColors = {
+//   'anti-analysis': { background: '#e0f2fe', text: '#075985' },
+//   collection: { background: '#fef3c7', text: '#92400e' },
+//   communication: { background: '#dcfce7', text: '#166534' },
+//   compiler: { background: '#fae8ff', text: '#86198f' },
+//   'data-manipulation': { background: '#e2e8f0', text: '#334155' },
+//   executable: { background: '#ffedd5', text: '#9a3412' },
+//   'host-interaction': { background: '#f1f5f9', text: '#475569' },
+//   impact: { background: '#fef2f2', text: '#991b1b' },
+//   internal: { background: '#e0e7ff', text: '#3730a3' },
+//   lib: { background: '#fdf4ff', text: '#9d174d' },
+//   linking: { background: '#f5f3ff', text: '#6b21a8' },
+//   'load-code': { background: '#fff7ed', text: '#c2410c' },
+//   'malware-family': { background: '#fae8ff', text: '#86198f' },
+//   nursery: { background: '#f4f4f5', text: '#44403c' },
+//   persistence: { background: '#fff1f2', text: '#9f1239' },
+//   runtime: { background: '#dbeafe', text: '#1e3a8a' },
+//   targeting: { background: '#f0fdf4', text: '#14532d' }
+// }
 
-function getNamespaceStyle(namespace) {
-  const rootNamespace = namespace.split('/')[0]
-  const colors = namespaceColors[rootNamespace] || { background: '#f5f5f5', text: '#737373' }
-  return {
-    backgroundColor: colors.background,
-    color: colors.text
-  }
-}
+// function getNamespaceStyle(namespace) {
+//   const rootNamespace = namespace.split('/')[0]
+//   const colors = namespaceColors[rootNamespace] || { background: '#f5f5f5', text: '#737373' }
+//   return {
+//     backgroundColor: colors.background,
+//     color: colors.text
+//   }
+// }
 
 // Expand/Collapse All nodes
 const toggleAll = () => {
