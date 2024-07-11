@@ -489,12 +489,6 @@ a {
 :deep(.p-treetable-tbody) tr:not([aria-level='1']) svg {
   display: none;
 }
-
-/* Remove all borders from table rows */
-.p-treetable-tbody > tr {
-  border: none !important;
-}
-
 /* Optional: Add a subtle background to root-level rows for better distinction */
 :deep(.p-treetable-tbody > tr[aria-level='1']) {
   background-color: #f9f9f9;
