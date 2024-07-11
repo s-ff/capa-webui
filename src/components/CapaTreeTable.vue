@@ -84,7 +84,10 @@
             }"
           >
             {{ slotProps.node.data.name }}
-            <span v-if="slotProps.node.data.description" style="font-size: 90%; color: grey">
+            <span
+              v-if="slotProps.node.data.description"
+              style="font-style: none; font-size: 90%; font-weight: normal; color: grey"
+            >
               {{ '  ' + slotProps.node.data.description }}
             </span>
             <Badge
@@ -327,10 +330,7 @@ const parseNode = (node, parentKey, index, rules, lib) => {
       name: getNodeName(processedNode),
       lib: lib,
       address: getNodeAddress(processedNode),
-      description:
-        processedNode.node === 'statement'
-          ? processedNode.node.statement?.description
-          : processedNode.node.feature?.description,
+      description: getNodeDescription(processedNode),
       namespace: null,
       matchCount: null,
       source: null
@@ -361,6 +361,16 @@ const parseNode = (node, parentKey, index, rules, lib) => {
   }
 
   return result
+}
+
+const getNodeDescription = (node) => {
+  if (node.node.statement) {
+    return node.node.statement.description
+  } else if (node.node.feature) {
+    return node.node.feature.description
+  } else {
+    return null
+  }
 }
 
 const getNodeName = (node) => {
