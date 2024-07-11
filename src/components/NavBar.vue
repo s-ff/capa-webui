@@ -11,7 +11,9 @@ const items = ref([
     label: 'Import Analysis',
     icon: 'pi pi-file-import',
     command: () => {
-      router.push('/')
+      // Force a route change even if we're already on the home page
+      router.push({ path: '/', force: true })
+      router.go(0)
     }
   },
   {
@@ -70,12 +72,10 @@ const items = ref([
   <div class="card">
     <Menubar :model="items">
       <template #item="{ item, props, hasSubmenu }">
-        <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
-          <a v-ripple :href="href" v-bind="props.action" @click="navigate">
-            <span :class="item.icon" />
-            <span class="ml-2">{{ item.label }}</span>
-          </a>
-        </router-link>
+        <a v-if="item.command" v-ripple v-bind="props.action" @click="item.command">
+          <span :class="item.icon" />
+          <span class="ml-2">{{ item.label }}</span>
+        </a>
         <a v-else v-ripple :href="item.url" :target="item.target" v-bind="props.action">
           <span :class="item.icon" />
           <span class="ml-2">{{ item.label }}</span>

@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import ImportView from '../views/ImportView.vue'
 //import HomeView from '../views/HomeView.vue'
 
@@ -19,12 +19,12 @@ const router = createRouter({
       // this generates a separate chunk (About.[hash].js) for this route
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/RulesView.vue')
-    },
-    {
-      path: '/import',
-      name: 'import',
-      component: () => import('../views/ImportView.vue')
     }
+    // {
+    //   path: '/import',
+    //   name: 'import',
+    //   component: () => import('../views/ImportView.vue')
+    // }
   ]
 })
 
