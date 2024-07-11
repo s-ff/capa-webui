@@ -7,13 +7,6 @@ import Menubar from 'primevue/menubar'
 const router = useRouter()
 
 const items = ref([
-  // {
-  //   label: 'Documentation',
-  //   icon: 'pi pi-home',
-  //   command: () => {
-  //     router.push('/')
-  //   }
-  // },
   {
     label: 'Import Analysis',
     icon: 'pi pi-file-import',
@@ -21,13 +14,6 @@ const items = ref([
       router.push('/')
     }
   },
-  // {
-  //   label: 'Rules Catalogue',
-  //   icon: 'pi pi-box',
-  //   command: () => {
-  //     router.push('/rules')
-  //   }
-  // },
   {
     label: 'Toolset',
     icon: 'pi pi-list',
@@ -96,13 +82,6 @@ const items = ref([
           <span v-if="hasSubmenu" class="pi pi-fw pi-angle-down ml-2" />
         </a>
       </template>
-      <!-- <template #end>
-        <div class="flex items-center gap-2">
-          <Button v-ripple type="button" class="topbar-item" @click="toggleDarkMode">
-            <i class="pi pi-moon"></i>
-          </Button>
-        </div>
-      </template> -->
     </Menubar>
   </div>
 </template>

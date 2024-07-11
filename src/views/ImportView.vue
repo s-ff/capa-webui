@@ -22,7 +22,7 @@ const isValidVersion = ref(false)
 const showCapabilitiesByFunctionOrProcess = ref(false)
 const showLibraryRules = ref(false)
 
-const flavor = computed(() => jsonData.value.meta.flavor)
+const flavor = computed(() => jsonData.value?.meta.flavor)
 
 const updateShowCapabilitiesByFunctionOrProcess = (value) => {
   showCapabilitiesByFunctionOrProcess.value = value
@@ -130,7 +130,7 @@ const loadDemoDataStatic = () => {
     toast.add({
       severity: 'success',
       summary: 'Success',
-      detail: 'Static semo data loaded successfully',
+      detail: 'Static demo data loaded successfully',
       life: 2000,
       group: 'bc'
     })
