@@ -2,7 +2,10 @@
   <div class="card">
     <TreeTable
       :value="filteredTreeData"
-      v-model:expandedKeys="expandedKeys"
+      v-model:expandedKeys="allExpandedKeys"
+      :expandable="(node) => node.children && node.children.length > 0 && !node.data.address"
+      @node-expand="toggleNode"
+      @node-collapse="toggleNode"
       size="small"
       :filters="filters"
       :filterMode="filterMode.value"
@@ -211,6 +214,39 @@ const currentSource = ref('')
 const expandedKeys = ref({})
 const selectedNodeKeys = ref([])
 
+const allExpandedKeys = computed(() => {
+  const allKeys = { ...expandedKeys.value }
+
+  const expandAllChildren = (node) => {
+    if (node.children && node.children.length) {
+      node.children.forEach((child) => {
+        allKeys[child.key] = true
+        expandAllChildren(child)
+      })
+    }
+  }
+
+  treeData.value.forEach((rootNode) => {
+    if (expandedKeys.value[rootNode.key]) {
+      expandAllChildren(rootNode)
+    }
+  })
+
+  return allKeys
+})
+
+// Toggle individual root nodes
+const toggleNode = (node) => {
+  if (node.children && node.children.length > 0 && !node.data.address) {
+    if (expandedKeys.value[node.key]) {
+      delete expandedKeys.value[node.key]
+    } else {
+      expandedKeys.value[node.key] = true
+    }
+    expandedKeys.value = { ...expandedKeys.value }
+  }
+}
+
 // All available columns
 const togglableColumns = ref([
   { field: 'address', header: 'Address' },
@@ -409,54 +445,21 @@ const parseRules = (rules) => {
       .filter((child) => child !== null)
   }))
 }
-// const namespaceColors = {
-//   'anti-analysis': { background: '#e0f2fe', text: '#075985' },
-//   collection: { background: '#fef3c7', text: '#92400e' },
-//   communication: { background: '#dcfce7', text: '#166534' },
-//   compiler: { background: '#fae8ff', text: '#86198f' },
-//   'data-manipulation': { background: '#e2e8f0', text: '#334155' },
-//   executable: { background: '#ffedd5', text: '#9a3412' },
-//   'host-interaction': { background: '#f1f5f9', text: '#475569' },
-//   impact: { background: '#fef2f2', text: '#991b1b' },
-//   internal: { background: '#e0e7ff', text: '#3730a3' },
-//   lib: { background: '#fdf4ff', text: '#9d174d' },
-//   linking: { background: '#f5f3ff', text: '#6b21a8' },
-//   'load-code': { background: '#fff7ed', text: '#c2410c' },
-//   'malware-family': { background: '#fae8ff', text: '#86198f' },
-//   nursery: { background: '#f4f4f5', text: '#44403c' },
-//   persistence: { background: '#fff1f2', text: '#9f1239' },
-//   runtime: { background: '#dbeafe', text: '#1e3a8a' },
-//   targeting: { background: '#f0fdf4', text: '#14532d' }
-// }
-
-// function getNamespaceStyle(namespace) {
-//   const rootNamespace = namespace.split('/')[0]
-//   const colors = namespaceColors[rootNamespace] || { background: '#f5f5f5', text: '#737373' }
-//   return {
-//     backgroundColor: colors.background,
-//     color: colors.text
-//   }
-// }
 
 // Expand/Collapse All nodes
 const toggleAll = () => {
-  let _expandedKeys = {}
+  const rootKeys = treeData.value.map((node) => node.key)
+  const allExpanded = rootKeys.every((key) => expandedKeys.value[key])
 
-  if (Object.keys(expandedKeys.value).length === 0) {
-    // If no nodes are expanded, expand all nodes
-    const expandAll = (node) => {
-      if (node.children && node.children.length) {
-        _expandedKeys[node.key] = true
-        node.children.forEach(expandAll)
-      }
-    }
-
-    treeData.value.forEach(expandAll)
+  if (allExpanded) {
+    expandedKeys.value = {}
+  } else {
+    expandedKeys.value = rootKeys.reduce((acc, key) => {
+      acc[key] = true
+      return acc
+    }, {})
   }
-
-  expandedKeys.value = _expandedKeys
 }
-
 const scrollToTop = () => {
   window.scrollTo({
     top: 0,
@@ -481,5 +484,9 @@ onMounted(() => {
 a {
   text-decoration: none;
   color: inherit;
+}
+
+:deep(.p-treetable-tbody) tr:not([aria-level='1']) svg {
+  display: none;
 }
 </style>
