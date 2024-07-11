@@ -65,7 +65,7 @@
             v-model="filters['name']"
             type="text"
             @input="filterCallback()"
-            placeholder="Filter by rule"
+            placeholder="Filter by rule or feature"
           />
         </template>
         <template #body="slotProps">
@@ -250,7 +250,7 @@ const toggleNode = (node) => {
 // All available columns
 const togglableColumns = ref([
   { field: 'address', header: 'Address' },
-  { field: 'tactic', header: 'Tactic' },
+  { field: 'tactic', header: 'ATT&CK Tactic' },
   { field: 'namespace', header: 'Namespace' },
   { field: 'source', header: 'Source' }
 ])
@@ -488,5 +488,19 @@ a {
 
 :deep(.p-treetable-tbody) tr:not([aria-level='1']) svg {
   display: none;
+}
+
+/* Remove all borders from table rows */
+.p-treetable-tbody > tr {
+  border: none !important;
+}
+
+/* Optional: Add a subtle background to root-level rows for better distinction */
+:deep(.p-treetable-tbody > tr[aria-level='1']) {
+  background-color: #f9f9f9;
+}
+
+:deep(.p-treetable) .p-treetable-tbody > tr > td {
+  border: none !important;
 }
 </style>
