@@ -180,8 +180,13 @@
         <!-- Source column body template -->
         <template v-if="col.field === 'source'" #body="slotProps">
           <Button
+            text
+            raised
+            rounded
             v-if="slotProps.node.data.source"
             icon="pi pi-external-link"
+            size="small"
+            severity="secondary"
             @click="showSource(slotProps.node.data.source)"
           />
         </template>
