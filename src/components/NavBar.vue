@@ -58,6 +58,11 @@ const items = ref([
         url: 'https://github.com/mandiant/ghidrathon'
       },
       {
+        label: 'dncil',
+        icon: 'pi pi-github',
+        url: 'https://github.com/mandiant/dncil'
+      },
+      {
         label: 'GoReSym',
         icon: 'pi pi-github',
         url: 'https://github.com/mandiant/GoReSym/'

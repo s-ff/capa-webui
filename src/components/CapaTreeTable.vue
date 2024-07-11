@@ -161,6 +161,15 @@
           </div>
         </template>
 
+        <!-- MBC column body template -->
+        <template v-if="col.field === 'mbc'" #body="slotProps">
+          <div v-if="slotProps.node.data.mbc">
+            <div v-for="(mbc, index) in slotProps.node.data.mbc" :key="index" class="mbc-entry">
+              {{ `${mbc.objective}::${mbc.behavior}::${mbc.method} [${mbc.id}]` }}
+            </div>
+          </div>
+        </template>
+
         <!-- Namespace column body template -->
         <template v-if="col.field === 'namespace'" #body="slotProps">
           <span v-if="!slotProps.node.data.lib">
@@ -255,13 +264,14 @@ const togglableColumns = ref([
   { field: 'address', header: 'Address' },
   { field: 'tactic', header: 'ATT&CK Tactic' },
   { field: 'namespace', header: 'Namespace' },
+  { field: 'mbc', header: 'MBC' },
   { field: 'source', header: 'Source' }
 ])
 
 // Define initially visible columns
-const visibleColumns = ref(togglableColumns.value)
-// Define initially visible columns (excluding 'tactic')
-// const visibleColumns = ref(allColumns.value.filter((col) => col.field !== 'tactic'))
+// const visibleColumns = ref(togglableColumns.value)
+// Define initially visible columns (excluding 'mbc')
+const visibleColumns = ref(togglableColumns.value.filter((col) => col.field !== 'mbc'))
 
 const onToggle = (val) => {
   visibleColumns.value = togglableColumns.value.filter((col) => val.includes(col))
@@ -436,6 +446,7 @@ const parseRules = (rules) => {
       matchCount: rule.matches.length,
       namespace: rule.meta.namespace,
       address: null,
+      mbc: rule.meta.mbc,
       source: rule.source,
       tactic: JSON.stringify(rule.meta.attack),
       attack: rule.meta.attack
@@ -507,4 +518,14 @@ a {
 :deep(.p-treetable) .p-treetable-tbody > tr > td {
   border: none !important;
 }
+
+.mbc-entry {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/*
+ .mbc-entry:not(:last-child) {
+  margin-bottom: 0.5em;
+} */
 </style>
