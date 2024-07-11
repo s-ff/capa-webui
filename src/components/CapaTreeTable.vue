@@ -30,15 +30,18 @@
           "
         >
           <Button icon="pi pi-expand" @click="toggleAll" label="Toggle All" />
-          <MultiSelect
-            :modelValue="visibleColumns"
-            @update:modelValue="onToggle"
-            :options="togglableColumns"
-            optionLabel="header"
-            class="w-full sm:w-64"
-            display="chip"
-            placeholder="Toggle columns"
-          />
+          <div style="display: flex; align-items: center; flex-direction: row; gap: 10px">
+            <label>Toggle columns:</label>
+            <MultiSelect
+              :modelValue="visibleColumns"
+              @update:modelValue="onToggle"
+              :options="togglableColumns"
+              optionLabel="header"
+              class="w-full sm:w-64"
+              display="chip"
+              placeholder="Toggle columns"
+            />
+          </div>
           <IconField>
             <InputIcon class="pi pi-search" />
             <InputText v-model="filters['global']" placeholder="Global search" />
@@ -114,7 +117,9 @@
         v-for="col in visibleColumns"
         :key="col.field"
         :field="col.field"
-        :header="col.header"
+        :header="
+          props.data.meta.flavor === 'dynamic' && col.field === 'address' ? 'Process' : col.header
+        "
         :sortable="col.field !== 'source'"
         filterMatchMode="contains"
       >
@@ -392,7 +397,7 @@ const getNodeName = (node) => {
   // statements (or, and, optional, ... etc)
   if (node.node.statement) {
     if (node.node.statement.type === 'subscope') {
-      return `${node.node.statement.type}: ${node.node.statement.scope}`
+      return `${node.node.statement.scope}:`
     } else if (node.node.statement.type === 'range') {
       const { child, min, max } = node.node.statement
       const { type, [type]: value } = child
@@ -442,7 +447,7 @@ const getNodeAddress = (node) => {
   return null
 }
 
-const parseRules = (rules) => {
+function parseRules(rules) {
   return Object.entries(rules).map(([ruleName, rule], index) => ({
     key: index.toString(),
     data: {
@@ -450,7 +455,6 @@ const parseRules = (rules) => {
       lib: rule.meta.lib,
       matchCount: rule.matches.length,
       namespace: rule.meta.namespace,
-      address: null,
       mbc: rule.meta.mbc,
       source: rule.source,
       tactic: JSON.stringify(rule.meta.attack),
@@ -464,14 +468,30 @@ const parseRules = (rules) => {
           }))
         : null
     },
-    children: rule.matches
-      .map((match, matchIndex) =>
-        parseNode(match[1], index.toString(), matchIndex, rules, rule.meta.lib)
-      )
-      .filter((child) => child !== null)
+    children: rule.matches.map((match, matchIndex) => ({
+      key: `${index}-${matchIndex}`,
+      data: {
+        name:
+          props.data.meta.flavor === 'static'
+            ? `${rule.meta.scopes.static} @ ${formatAddress(match[0].value)}`
+            : `${rule.meta.scopes.dynamic}: ${match[0].value}`,
+        address:
+          props.data.meta.flavor === 'static'
+            ? `${formatAddress(match[0].value)}`
+            : `${match[0].value}`,
+        isLocationNode: true
+      },
+      children: [parseNode(match[1], `${index}-${matchIndex}-0`, 0, rules, rule.meta.lib)]
+    }))
   }))
 }
 
+function formatAddress(address) {
+  if (address === undefined || address === null) {
+    return null
+  }
+  return `0x${address.toString(16).toUpperCase()}`
+}
 // Expand/Collapse All nodes
 const toggleAll = () => {
   const rootKeys = treeData.value.map((node) => node.key)
@@ -496,6 +516,7 @@ const scrollToTop = () => {
 onMounted(() => {
   if (props.data && props.data.rules) {
     treeData.value = parseRules(props.data.rules)
+    console.log(treeData.value)
   } else {
     console.error('Invalid data prop:', props.data)
   }
@@ -512,9 +533,11 @@ a {
   color: inherit;
 }
 
-:deep(.p-treetable-tbody) tr:not([aria-level='1']) svg {
+/* Hide the toggle icon for statement and features */
+:deep(.p-treetable-tbody) tr:not(:is([aria-level='1'], [aria-level='2'])) svg {
   display: none;
 }
+
 /* Optional: Add a subtle background to root-level rows for better distinction */
 :deep(.p-treetable-tbody > tr[aria-level='1']) {
   background-color: #f9f9f9;
