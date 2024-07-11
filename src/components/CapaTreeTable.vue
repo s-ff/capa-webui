@@ -391,7 +391,7 @@ const getNodeName = (node) => {
       return `${node.node.statement.count} or more`
     }
 
-    return `${node.node.statement.type}`
+    return `${node.node.statement.type}: `
     // features (api, some, range, regex, ... etc)
   } else if (node.node.feature) {
     if (node.node.feature.type === 'number') {
