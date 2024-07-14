@@ -24,6 +24,11 @@ const showLibraryRules = ref(false)
 
 const flavor = computed(() => jsonData.value?.meta.flavor)
 
+const libraryRuleMatchesCount = computed(() => {
+  if (!jsonData.value || !jsonData.value.rules) return 0
+  return Object.values(jsonData.value.rules).filter((rule) => rule.meta.lib).length
+})
+
 const updateShowCapabilitiesByFunctionOrProcess = (value) => {
   showCapabilitiesByFunctionOrProcess.value = value
 }
@@ -218,6 +223,7 @@ const loadDemoDataDynamic = () => {
     <MetadataTable :data="jsonData" />
     <SettingsPanel
       :flavor="flavor"
+      :library-rule-matches-count="libraryRuleMatchesCount"
       @update:show-capabilities-by-function-or-process="updateShowCapabilitiesByFunctionOrProcess"
       @update:show-library-rules="updateShowLibraryRules"
     />

@@ -8,9 +8,6 @@
       :filterMode="filterMode.value"
       sortField="namespace"
       :sortOrder="-1"
-      :paginator="true"
-      :rows="50"
-      :rowsPerPageOptions="[5, 10, 25, 50]"
       removableSort
       :showGridlines="false"
       :indentation="2"
@@ -215,7 +212,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, toRaw } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import TreeTable from 'primevue/treetable'
 import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
@@ -420,7 +417,7 @@ const getNodeName = (node) => {
       const { type, [type]: value } = child
 
       //let rangeType = `count(${type}(${value}))`
-      let rangeType = value ? `count(${type}(${value}))` : `count(${type})`
+      let rangeType = value || value === 0 ? `count(${type}(${value}))` : `count(${type})`
       let rangeValue = ''
 
       if (min === max) {
@@ -524,21 +521,25 @@ function formatAddress(address) {
 
 // Expand/Collapse All nodes
 const toggleAll = () => {
-  let _expandedKeys = {}
+  const anyRootExpanded = treeData.value.some((rootNode) => expandedKeys.value[rootNode.key])
 
-  if (Object.keys(expandedKeys.value).length === 0) {
-    // If no nodes are expanded, expand all nodes
-    const expandAll = (node) => {
-      if (node.children && node.children.length) {
-        _expandedKeys[node.key] = true
-        node.children.forEach(expandAll)
+  if (!anyRootExpanded) {
+    // Expand all root nodes and their first match node
+    treeData.value.forEach((rootNode) => {
+      expandedKeys.value[rootNode.key] = true
+      if (rootNode.children && rootNode.children.length > 0) {
+        // Expand only the first match node
+        expandedKeys.value[rootNode.children[0].key] = true
+        // Expand all children of the first match node
+        expandAllChildren(rootNode.children[0])
       }
-    }
-
-    treeData.value.forEach(expandAll)
+    })
+  } else {
+    // Collapse only root
+    treeData.value.forEach((rootNode) => {
+      expandedKeys.value[rootNode.key] = false
+    })
   }
-
-  expandedKeys.value = _expandedKeys
 }
 
 const scrollToTop = () => {
@@ -581,7 +582,6 @@ a {
 }
 
 /* Hide the toggle icon for statement and features */
-
 :deep(.p-treetable-tbody) tr:not(:is([aria-level='1'], [aria-level='2'])) svg {
   display: none;
 }
@@ -622,10 +622,4 @@ a {
 :deep(.custom-source-button .p-button-icon) {
   font-size: 0.8rem;
 }
-/*
-:deep(.p-treetable-tbody > tr > td:last-child) {
-  width: 3rem;
-  padding: 0 !important;
-  text-align: center;
-} */
 </style>

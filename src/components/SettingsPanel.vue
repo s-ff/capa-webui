@@ -12,7 +12,9 @@
         </div>
         <div class="checkbox-container">
           <Checkbox v-model="showLibraryRules" inputId="showLibraryRules" :binary="true" />
-          <label for="showLibraryRules">Show library rules</label>
+          <label for="showLibraryRules"
+            >Show {{ libraryRuleMatchesCount }} library rule matches</label
+          >
         </div>
       </div>
     </template>
@@ -26,6 +28,10 @@ import Checkbox from 'primevue/checkbox'
 const props = defineProps({
   flavor: {
     type: String,
+    required: true
+  },
+  libraryRuleMatchesCount: {
+    type: Number,
     required: true
   }
 })
