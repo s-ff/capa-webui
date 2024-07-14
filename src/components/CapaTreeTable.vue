@@ -2,10 +2,7 @@
   <div class="card">
     <TreeTable
       :value="filteredTreeData"
-      v-model:expandedKeys="allExpandedKeys"
-      :expandable="(node) => node.children && node.children.length > 0 && !node.data.address"
-      @node-expand="toggleNode"
-      @node-collapse="toggleNode"
+      v-model:expandedKeys="expandedKeys"
       size="small"
       :filters="filters"
       :filterMode="filterMode.value"
@@ -19,6 +16,16 @@
       :indentation="2"
       v-model:selectionKeys="selectedNodeKeys"
       :row-hover="true"
+      :style="{
+        'font-size': '0.9rem',
+        'line-height': '1.2',
+        '--row-height': '1rem'
+      }"
+      :pt="{
+        bodyRow: { style: 'height: var(--row-height);' },
+        bodyCell: { style: 'padding: 0.15rem 0.5rem;' }
+      }"
+      @node-expand="onNodeExpand"
     >
       <template #header>
         <div
@@ -63,12 +70,11 @@
         :expander="true"
         filterMatchMode="contains"
       >
-        <template #filter="{ filterModel, filterCallback }">
+        <template #filter>
           <InputText
             v-model="filters['name']"
             type="text"
-            @input="filterCallback()"
-            placeholder="Filter by rule or feature"
+            placeholder="Filter by Rule or Feature"
           />
         </template>
         <template #body="slotProps">
@@ -93,11 +99,15 @@
             >
               {{ '  ' + slotProps.node.data.description }}
             </span>
-            <Badge
+            <!-- <Badge
               v-if="slotProps.node.data.matchCount > 1"
               :value="`${slotProps.node.data.matchCount} matches`"
               severity="contrast"
-            ></Badge>
+            ></Badge> -->
+            <span v-if="slotProps.node.data.matchCount > 1" style="font-style: italic">{{
+              `(${slotProps.node.data.matchCount} matches)`
+            }}</span>
+
             <Tag
               v-if="slotProps.node.data.lib && slotProps.node.data.matchCount"
               class="info-tooltip"
@@ -124,12 +134,11 @@
         filterMatchMode="contains"
       >
         <!-- Filter template -->
-        <template #filter="{ filterModel, filterCallback }" v-if="col.field !== 'source'">
+        <template #filter v-if="col.field !== 'source'">
           <InputText
             v-model="filters[col.field]"
             type="text"
-            @input="filterCallback()"
-            :placeholder="`Filter by ${col.header.toLowerCase()}`"
+            :placeholder="`Filter by ${col.header}`"
           />
         </template>
 
@@ -192,6 +201,7 @@
             icon="pi pi-external-link"
             size="small"
             severity="secondary"
+            class="custom-source-button"
             @click="showSource(slotProps.node.data.source)"
           />
         </template>
@@ -205,7 +215,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, toRaw } from 'vue'
 import TreeTable from 'primevue/treetable'
 import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
@@ -214,7 +224,6 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
-import Badge from 'primevue/badge'
 import MultiSelect from 'primevue/multiselect'
 
 const props = defineProps({
@@ -236,36 +245,37 @@ const currentSource = ref('')
 const expandedKeys = ref({})
 const selectedNodeKeys = ref([])
 
-const allExpandedKeys = computed(() => {
-  const allKeys = { ...expandedKeys.value }
+// Function to handle node expansion
+// If one match is is expanded,
+// it will collapse all the others
+const onNodeExpand = (event) => {
+  const expandedNodeKey = event.key
+  const keyParts = expandedNodeKey.split('-')
 
-  const expandAllChildren = (node) => {
-    if (node.children && node.children.length) {
-      node.children.forEach((child) => {
-        allKeys[child.key] = true
-        expandAllChildren(child)
-      })
-    }
+  // Check if the expanded node is a match node (key format: n-m)
+  if (keyParts.length === 2) {
+    const parentKey = keyParts[0]
+
+    // Collapse all sibling match nodes
+    Object.keys(expandedKeys.value).forEach((key) => {
+      if (
+        key.startsWith(parentKey + '-') &&
+        key.split('-').length == 2 &&
+        key !== expandedNodeKey
+      ) {
+        expandedKeys.value[key] = false
+      }
+    })
   }
+}
 
-  treeData.value.forEach((rootNode) => {
-    if (expandedKeys.value[rootNode.key]) {
-      expandAllChildren(rootNode)
-    }
-  })
-
-  return allKeys
-})
-
-// Toggle individual root nodes
-const toggleNode = (node) => {
-  if (node.children && node.children.length > 0 && !node.data.address) {
-    if (expandedKeys.value[node.key]) {
-      delete expandedKeys.value[node.key]
-    } else {
-      expandedKeys.value[node.key] = true
-    }
-    expandedKeys.value = { ...expandedKeys.value }
+// Function to expand all children of a node
+const expandAllChildren = (node) => {
+  if (node.children) {
+    node.children.forEach((child) => {
+      expandedKeys.value[child.key] = true
+      expandAllChildren(child)
+    })
   }
 }
 
@@ -329,7 +339,7 @@ const invertNotStatementSuccess = (node) => {
   return invertedNode
 }
 
-const parseNode = (node, parentKey, index, rules, lib) => {
+const parseNode = (node, key, rules, lib) => {
   if (!node) return null
 
   const isNotStatement = node.node.statement && node.node.statement.type === 'not'
@@ -337,14 +347,15 @@ const parseNode = (node, parentKey, index, rules, lib) => {
   // Handle 'not' statements by creating a new object with inverted success values for children
   const processedNode = isNotStatement ? invertNotStatementSuccess(node) : node
 
-  // If it's not successful, return null
+  // After inverting, discard all non-success nodes
   if (!processedNode.success) {
     return null
   }
 
-  const key = `${parentKey}-${index}`
+  let childCounter = 0
+
   const result = {
-    key,
+    key: key,
     data: {
       success: processedNode.success,
       name: getNodeName(processedNode),
@@ -360,7 +371,13 @@ const parseNode = (node, parentKey, index, rules, lib) => {
 
   if (processedNode.children && Array.isArray(processedNode.children)) {
     result.children = processedNode.children
-      .map((child, childIndex) => parseNode(child, key, childIndex, rules, lib))
+      .map((child) => {
+        const childNode = parseNode(child, `${key}-${childCounter}`, rules, lib)
+        if (childNode) {
+          childCounter++
+        }
+        return childNode
+      })
       .filter((child) => child !== null)
   }
 
@@ -448,42 +465,54 @@ const getNodeAddress = (node) => {
 }
 
 function parseRules(rules) {
-  return Object.entries(rules).map(([ruleName, rule], index) => ({
-    key: index.toString(),
-    data: {
-      name: rule.meta.name,
-      lib: rule.meta.lib,
-      matchCount: rule.matches.length,
-      namespace: rule.meta.namespace,
-      mbc: rule.meta.mbc,
-      source: rule.source,
-      tactic: JSON.stringify(rule.meta.attack),
-      attack: rule.meta.attack
-        ? rule.meta.attack.map((attack) => ({
-            tactic: attack.tactic,
-            id: attack.id.includes('.') ? attack.id.split('.')[0] : attack.id,
-            techniques: attack.subtechnique
-              ? [{ technique: attack.subtechnique, id: attack.id }]
-              : []
-          }))
-        : null
-    },
-    children: rule.matches.map((match, matchIndex) => ({
-      key: `${index}-${matchIndex}`,
+  return Object.entries(rules).map(([ruleName, rule], index) => {
+    const ruleNode = {
+      key: index.toString(),
       data: {
-        name:
-          props.data.meta.flavor === 'static'
-            ? `${rule.meta.scopes.static} @ ${formatAddress(match[0].value)}`
-            : `${rule.meta.scopes.dynamic}: ${match[0].value}`,
-        address:
-          props.data.meta.flavor === 'static'
-            ? `${formatAddress(match[0].value)}`
-            : `${match[0].value}`,
-        isLocationNode: true
+        name: rule.meta.name,
+        lib: rule.meta.lib,
+        matchCount: rule.matches.length,
+        namespace: rule.meta.namespace,
+        mbc: rule.meta.mbc,
+        source: rule.source,
+        tactic: JSON.stringify(rule.meta.attack),
+        attack: rule.meta.attack
+          ? rule.meta.attack.map((attack) => ({
+              tactic: attack.tactic,
+              id: attack.id.includes('.') ? attack.id.split('.')[0] : attack.id,
+              techniques: attack.subtechnique
+                ? [{ technique: attack.subtechnique, id: attack.id }]
+                : []
+            }))
+          : null
       },
-      children: [parseNode(match[1], `${index}-${matchIndex}-0`, 0, rules, rule.meta.lib)]
-    }))
-  }))
+      children: []
+    }
+
+    let matchCounter = 0
+    ruleNode.children = rule.matches.map((match) => {
+      const matchKey = `${index}-${matchCounter}`
+      const matchNode = {
+        key: matchKey,
+        data: {
+          name:
+            props.data.meta.flavor === 'static'
+              ? `${rule.meta.scopes.static} @ ${formatAddress(match[0].value)}`
+              : `${rule.meta.scopes.dynamic}: ${match[0].value}`,
+          address:
+            props.data.meta.flavor === 'static'
+              ? `${formatAddress(match[0].value)}`
+              : `${match[0].value}`,
+          isLocationNode: true
+        },
+        children: [parseNode(match[1], `${matchKey}-0`, rules, rule.meta.lib)]
+      }
+      matchCounter++
+      return matchNode
+    })
+
+    return ruleNode
+  })
 }
 
 function formatAddress(address) {
@@ -492,20 +521,26 @@ function formatAddress(address) {
   }
   return `0x${address.toString(16).toUpperCase()}`
 }
+
 // Expand/Collapse All nodes
 const toggleAll = () => {
-  const rootKeys = treeData.value.map((node) => node.key)
-  const allExpanded = rootKeys.every((key) => expandedKeys.value[key])
+  let _expandedKeys = {}
 
-  if (allExpanded) {
-    expandedKeys.value = {}
-  } else {
-    expandedKeys.value = rootKeys.reduce((acc, key) => {
-      acc[key] = true
-      return acc
-    }, {})
+  if (Object.keys(expandedKeys.value).length === 0) {
+    // If no nodes are expanded, expand all nodes
+    const expandAll = (node) => {
+      if (node.children && node.children.length) {
+        _expandedKeys[node.key] = true
+        node.children.forEach(expandAll)
+      }
+    }
+
+    treeData.value.forEach(expandAll)
   }
+
+  expandedKeys.value = _expandedKeys
 }
+
 const scrollToTop = () => {
   window.scrollTo({
     top: 0,
@@ -516,7 +551,19 @@ const scrollToTop = () => {
 onMounted(() => {
   if (props.data && props.data.rules) {
     treeData.value = parseRules(props.data.rules)
-    console.log(treeData.value)
+    expandedKeys.value = {}
+    treeData.value.forEach((rootNode) => {
+      expandedKeys.value[rootNode.key] = false
+      if (rootNode.children) {
+        rootNode.children.forEach((matchNode) => {
+          expandedKeys.value[matchNode.key] = false
+          if (matchNode.children) {
+            expandAllChildren(matchNode)
+          }
+        })
+        expandedKeys.value[rootNode.children[0].key] = true
+      }
+    })
   } else {
     console.error('Invalid data prop:', props.data)
   }
@@ -534,6 +581,7 @@ a {
 }
 
 /* Hide the toggle icon for statement and features */
+
 :deep(.p-treetable-tbody) tr:not(:is([aria-level='1'], [aria-level='2'])) svg {
   display: none;
 }
@@ -555,5 +603,29 @@ a {
 /*
  .mbc-entry:not(:last-child) {
   margin-bottom: 0.5em;
+} */
+
+:deep(.p-treetable-tbody > tr > td) {
+  padding: 0.1rem 0.5rem !important;
+}
+
+:deep(.p-treetable-tbody > tr) {
+  height: 2rem;
+}
+
+:deep(.custom-source-button) {
+  padding: 0 !important;
+  height: 1.5rem !important;
+  width: 1.5rem !important;
+}
+
+:deep(.custom-source-button .p-button-icon) {
+  font-size: 0.8rem;
+}
+/*
+:deep(.p-treetable-tbody > tr > td:last-child) {
+  width: 3rem;
+  padding: 0 !important;
+  text-align: center;
 } */
 </style>
