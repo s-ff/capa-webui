@@ -96,11 +96,6 @@
             >
               {{ '  ' + slotProps.node.data.description }}
             </span>
-            <!-- <Badge
-              v-if="slotProps.node.data.matchCount > 1"
-              :value="`${slotProps.node.data.matchCount} matches`"
-              severity="contrast"
-            ></Badge> -->
             <span v-if="slotProps.node.data.matchCount > 1" style="font-style: italic">{{
               `(${slotProps.node.data.matchCount} matches)`
             }}</span>
@@ -149,7 +144,7 @@
           <div v-if="slotProps.node.data.attack">
             <div v-for="(attack, index) in slotProps.node.data.attack" :key="index">
               <a :href="'https://attack.mitre.org/techniques/' + attack.id" target="_blank">
-                {{ attack.tactic }} ({{ attack.id }})
+                {{ attack.technique }} ({{ attack.id }})
               </a>
               <div
                 v-for="(technique, techIndex) in attack.techniques"
@@ -476,6 +471,7 @@ function parseRules(rules) {
         attack: rule.meta.attack
           ? rule.meta.attack.map((attack) => ({
               tactic: attack.tactic,
+              technique: attack.technique,
               id: attack.id.includes('.') ? attack.id.split('.')[0] : attack.id,
               techniques: attack.subtechnique
                 ? [{ technique: attack.subtechnique, id: attack.id }]

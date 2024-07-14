@@ -13,7 +13,7 @@
     removableSort
     :showGridlines="false"
     :indentation="2"
-    row-hover="true"
+    :row-hover="true"
   >
     <template #header>
       <div
@@ -44,30 +44,26 @@
           style="width: 70%"
           v-model="filters['processname']"
           type="text"
-          placeholder="Filter by process name"
+          placeholder="Filter by process"
         />
       </template>
       <template #body="slotProps">
-        {{ slotProps.node.data.processname }}
-        <Badge
-          v-if="slotProps.node.data.matchcount > 1"
-          :value="`${slotProps.node.data.matchcount} matches`"
-          severity="contrast"
-        ></Badge>
+        <span v-if="slotProps.node.data.type === 'process'">
+          {{
+            `${slotProps.node.data.processname} (PID: ${slotProps.node.data.procID.split(', ')[0]}, PPID: ${slotProps.node.data.procID.split(', ')[1]})`
+          }}
+          <span v-if="slotProps.node.data.matchcount > 1" style="font-style: italic">
+            - {{ slotProps.node.data.matchcount }} matches
+          </span>
+        </span>
+
+        <span v-else>
+          {{ slotProps.node.data.processname }}
+        </span>
       </template>
     </Column>
 
-    <Column field="matchcount" hidden header="Rule Matches"></Column>
-
-    <Column field="firstmatchaddr" sortable header="PID/PPID" filterMatchMode="contains">
-      <template #filter>
-        <InputText
-          v-model="filters['firstmatchaddr']"
-          type="text"
-          placeholder="Filter by PID/PPID"
-        />
-      </template>
-    </Column>
+    <Column field="matchcount" header="Rule Matches"></Column>
 
     <Column field="namespace" sortable header="Namespace" filterMatchMode="contains">
       <template #filter>
@@ -97,7 +93,6 @@ import TreeTable from 'primevue/treetable'
 import Column from 'primevue/column'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
-import Badge from 'primevue/badge'
 import InputText from 'primevue/inputtext'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
@@ -181,9 +176,10 @@ const treeData = computed(() => {
             key: `${processName}-${matchingRules.length}`,
             data: {
               processname: `rule: ${rule.meta.name}`,
+              type: 'rule',
               matchcount: null,
               namespace: rule.meta.namespace,
-              firstmatchaddr: processInfo.address.value.join(', '),
+              procID: processInfo.address.value.join(', '),
               source: rule.source
             }
           })
@@ -196,9 +192,10 @@ const treeData = computed(() => {
         key: `process-${processKey++}`,
         data: {
           processname: processName,
+          type: 'process',
           matchcount: matchingRules.length,
           namespace: null,
-          firstmatchaddr: null,
+          procID: processInfo.address.value.join(', '),
           source: null
         },
         children: matchingRules
