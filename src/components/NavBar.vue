@@ -71,6 +71,9 @@ const items = ref([
 <template>
   <div class="card">
     <Menubar :model="items">
+      <template #end>
+        <img src="../assets/images/icon.png" alt="Logo" style="height: 35px" />
+      </template>
       <template #item="{ item, props, hasSubmenu }">
         <a v-if="item.command" v-ripple v-bind="props.action" @click="item.command">
           <span :class="item.icon" />
