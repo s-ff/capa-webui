@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import FileUpload from 'primevue/fileupload'
 import { useToast } from 'primevue/usetoast'
 import InputText from 'primevue/inputtext'
@@ -90,6 +90,21 @@ const onUpload = (event) => {
 }
 
 const loadURL = ref('')
+
+// function to check for URL parameter and load JSON if present
+const checkAndLoadFromURLParam = () => {
+  const urlParams = new URLSearchParams(window.location.search)
+  const rdocURL = urlParams.get('rdoc')
+  if (rdocURL) {
+    loadURL.value = rdocURL
+    loadFromURL()
+  }
+}
+
+// Call the new function when the component mounts
+onMounted(() => {
+  checkAndLoadFromURLParam()
+})
 
 const loadFromURL = async () => {
   try {
