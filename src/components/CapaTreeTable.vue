@@ -482,27 +482,40 @@ function parseRules(rules) {
       children: []
     }
 
-    let matchCounter = 0
-    ruleNode.children = rule.matches.map((match) => {
-      const matchKey = `${index}-${matchCounter}`
-      const matchNode = {
-        key: matchKey,
-        data: {
-          name:
-            props.data.meta.flavor === 'static'
-              ? `${rule.meta.scopes.static} @ ${formatAddress(match[0].value)}`
-              : `${rule.meta.scopes.dynamic}: ${match[0].value}`,
-          address:
-            props.data.meta.flavor === 'static'
-              ? `${formatAddress(match[0].value)}`
-              : `${match[0].value}`,
-          isLocationNode: true
-        },
-        children: [parseNode(match[1], `${matchKey}-0`, rules, rule.meta.lib)]
-      }
-      matchCounter++
-      return matchNode
-    })
+    // Check if the rule's static scope is set to "file"
+    const isFileScope = rule.meta.scopes && rule.meta.scopes.static === 'file'
+
+    if (isFileScope) {
+      // For file-scoped rules, directly parse the match without creating an intermediate node
+      ruleNode.children = rule.matches.map((match, matchIndex) => {
+        return parseNode(match[1], `${index}-${matchIndex}`, rules, rule.meta.lib)
+      })
+    } else {
+      // For non-file-scoped rules, we should create match locatin nodes
+      // e.g. function @ 0x400110, process @ 3124, 4223
+      // TODO(s-ff): should we show match location for process/thread scopes?
+      let matchCounter = 0
+      ruleNode.children = rule.matches.map((match) => {
+        const matchKey = `${index}-${matchCounter}`
+        const matchNode = {
+          key: matchKey,
+          data: {
+            name:
+              props.data.meta.flavor === 'static'
+                ? `${rule.meta.scopes.static} @ ${formatAddress(match[0].value)}`
+                : `${rule.meta.scopes.dynamic}: ${match[0].value}`,
+            address:
+              props.data.meta.flavor === 'static'
+                ? `${formatAddress(match[0].value)}`
+                : `${match[0].value}`,
+            isLocationNode: true
+          },
+          children: [parseNode(match[1], `${matchKey}-0`, rules, rule.meta.lib)]
+        }
+        matchCounter++
+        return matchNode
+      })
+    }
 
     return ruleNode
   })
