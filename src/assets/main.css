@@ -5,3 +5,8 @@ body {
   font-weight: normal;
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Hide the toggle icon for statement and features */
+.p-treetable-tbody > tr:not(:is([aria-level='1'], [aria-level='2'])) > td > div > button {
+  visibility: hidden !important;
+}
