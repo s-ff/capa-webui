@@ -1,10 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Panel from 'primevue/panel'
-import Tag from 'primevue/tag'
-import Message from 'primevue/message'
+import { ref, computed, onMounted } from 'vue'
 
 const props = defineProps({
   data: {
@@ -13,148 +8,161 @@ const props = defineProps({
   }
 })
 
-const metadata = ref([])
-const ruleCount = ref(0)
-const namespaceCount = ref(0)
-const functionCount = ref(null)
-const processCount = ref(null)
-const libRatio = ref(0)
+const keyMetrics = ref({
+  ruleCount: 0,
+  namespaceCount: 0,
+  functionOrProcessCount: 0
+})
 
-const MIN_LIBFUNCS_RATIO = 0.4 // Adjust this value as needed
+const fileName = computed(() => props.data.meta.sample.path.split('/').pop())
+const analysisType = computed(() => props.data.meta.flavor)
+const sha256 = computed(() => props.data.meta.sample.sha256.toUpperCase())
 
 const parseMetadata = () => {
   if (props.data) {
-    metadata.value = [
-      { key: 'MD5', value: props.data.meta.sample.md5.toUpperCase() },
-      { key: 'SHA1', value: props.data.meta.sample.sha1.toUpperCase() },
-      { key: 'SHA256', value: props.data.meta.sample.sha256.toUpperCase() },
-      { key: 'Extractor', value: props.data.meta.analysis.extractor },
-      { key: 'Analysis', value: props.data.meta.flavor },
-      { key: 'OS', value: props.data.meta.analysis.os },
-      { key: 'Format', value: props.data.meta.analysis.format },
-      { key: 'Arch', value: props.data.meta.analysis.arch },
-      { key: 'Path', value: props.data.meta.sample.path },
-      { key: 'Version', value: props.data.meta.version },
-      { key: 'Timestamp', value: props.data.meta.timestamp }
-    ]
-    props.data.meta.flavor === 'static'
-      ? metadata.value.push(
-          {
-            key: 'Base Address',
-            value: '0x' + props.data.meta.analysis.base_address.value.toString(16).toUpperCase()
-          },
-          {
-            key: 'Function Count',
-            value: props.data.meta.analysis.feature_counts.functions.length
-          }
-        )
-      : metadata.value.push({
-          key: 'Process Count',
-          value: props.data.meta.analysis.feature_counts.processes.length
-        })
-
-    // Populate footer data
-    ruleCount.value = Object.keys(props.data.rules).length
-    // Count distinct namespaces
-    const namespaces = new Set()
-    for (const rule of Object.values(props.data.rules)) {
-      namespaces.add(rule.meta.namespace)
-    }
-    namespaceCount.value = namespaces.size
-
-    // Calculate the ratio of library functions
-    if (props.data.meta.flavor === 'static') {
-      functionCount.value = props.data.meta.analysis.feature_counts.functions.length
-
-      const nLibs = props.data.meta.analysis.library_functions.length
-      const nFuncs = props.data.meta.analysis.feature_counts.functions.length
-      libRatio.value = nFuncs + nLibs > 0 ? nLibs / (nFuncs + nLibs) : 0
-    } else {
-      processCount.value = props.data.meta.analysis.feature_counts.processes.length
+    keyMetrics.value = {
+      ruleCount: Object.keys(props.data.rules).length,
+      namespaceCount: new Set(Object.values(props.data.rules).map((rule) => rule.meta.namespace))
+        .size,
+      functionOrProcessCount:
+        analysisType.value === 'static'
+          ? props.data.meta.analysis.feature_counts.functions.length
+          : props.data.meta.analysis.feature_counts.processes.length
     }
   }
 }
 
-const showLibFuncWarning = computed(() => {
-  return props.data.meta.flavor === 'static' && libRatio.value < MIN_LIBFUNCS_RATIO
-})
-
-const libFuncWarningText = computed(() => {
-  return libRatio.value === 0
-    ? 'No functions were identified as library functions via FLIRT. Results may contain false positives.'
-    : `Only ${(libRatio.value * 100).toFixed(2)}% of all functions were identified as library functions via FLIRT. Results may contain false positives.`
-})
-
-const countLabel = computed(() => {
-  if (props.data.meta.flavor === 'static') {
-    return `${functionCount.value} functions`
-  } else {
-    return `${processCount.value} processes`
-  }
-})
-
 onMounted(() => {
   parseMetadata()
 })
-
-// const getColor = () => {
-//   return 'success'
-// }
 </script>
 
 <template>
-  <Panel toggleable collapsed>
-    <DataTable :value="metadata" stripedRows size="small" tableStyle="min-width: 50rem">
-      <Column field="key">
-        <template #body="slotProps">
-          <span style="font-weight: bold">{{ slotProps.data.key }}</span>
-        </template>
-        ></Column
-      >
-      <Column field="value">
-        <template #body="slotProps">
-          <Tag
-            v-if="slotProps.data.key.toLowerCase() === 'extractor'"
-            :value="slotProps.data.value"
-            severity="info"
-          />
-          <Tag
-            v-else-if="slotProps.data.key.toLowerCase() === 'os'"
-            :value="slotProps.data.value"
-            severity="info"
-          />
-          <Tag
-            v-else-if="slotProps.data.key.toLowerCase() === 'analysis'"
-            :value="slotProps.data.value"
-            severity="info"
-          />
-          <Tag
-            v-else-if="slotProps.data.key.toLowerCase() === 'format'"
-            :value="slotProps.data.value"
-            severity="info"
-          />
-          <Tag
-            v-else-if="slotProps.data.key.toLowerCase() === 'arch'"
-            :value="slotProps.data.value"
-            severity="info"
-          />
-          <template v-else>
-            {{ slotProps.data.value }}
-          </template>
-        </template>
-      </Column>
-      <template #footer>
-        The sample matched
-        <Tag :value="ruleCount + ' rules'" severity="danger" /> accross
-        <Tag :value="namespaceCount + ' namespaces'" severity="danger" /> in
-        <Tag :value="countLabel" severity="danger" />
-      </template>
-    </DataTable>
-    <br />
-    <Message v-if="showLibFuncWarning" severity="warn" icon="pi pi-exclamation-triangle" closable>
-      {{ libFuncWarningText }}
-    </Message>
-  </Panel>
+  <div class="metadata-banner">
+    <div class="file-info">
+      <h1>{{ fileName }}</h1>
+      <p class="sha256" :title="sha256">{{ `SHA256: ${sha256}` }}</p>
+    </div>
+    <div class="divider"></div>
+    <div class="analysis-info">
+      <p>
+        {{ props.data.meta.analysis.os }} / {{ props.data.meta.analysis.format }} /
+        {{ props.data.meta.analysis.arch }}
+      </p>
+      <p>
+        {{ analysisType }} analysis with {{ props.data.meta.analysis.extractor }} | CAPA v{{
+          props.data.meta.version
+        }}
+        |
+        {{ new Date(props.data.meta.timestamp).toLocaleString() }}
+      </p>
+    </div>
+    <div class="divider"></div>
+    <div class="key-metrics">
+      <div class="metric">
+        <span class="metric-value">{{ keyMetrics.ruleCount }}</span>
+        <span class="metric-label">Rules</span>
+      </div>
+      <div class="metric">
+        <span class="metric-value">{{ keyMetrics.namespaceCount }}</span>
+        <span class="metric-label">Namespaces</span>
+      </div>
+      <div class="metric">
+        <span class="metric-value">{{ keyMetrics.functionOrProcessCount }}</span>
+        <span class="metric-label">{{
+          analysisType === 'static' ? 'Functions' : 'Processes'
+        }}</span>
+      </div>
+    </div>
+  </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.metadata-banner {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(to right, #2c3e50, #3498db);
+  color: #ecf0f1;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.file-info {
+  flex: 2;
+}
+
+.file-info h1 {
+  font-size: 1.2rem;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sha256 {
+  font-size: 0.7rem;
+  margin: 2px 0 0;
+  opacity: 0.7;
+}
+
+.analysis-info {
+  flex: 3;
+  font-size: 0.8rem;
+}
+
+.analysis-info p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.key-metrics {
+  flex: 2;
+  display: flex;
+  justify-content: space-around;
+}
+
+.metric {
+  text-align: center;
+}
+
+.metric-value {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.divider {
+  width: 1px;
+  height: 30px;
+  background-color: rgba(236, 240, 241, 0.3);
+  margin: 0 15px;
+}
+
+@media (max-width: 768px) {
+  .metadata-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .divider {
+    display: none;
+  }
+
+  .file-info,
+  .analysis-info,
+  .key-metrics {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
+</style>
