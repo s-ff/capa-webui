@@ -2,16 +2,16 @@
   <div class="card">
     <TreeTable
       :value="filteredTreeData"
+      scrollable
       v-model:expandedKeys="expandedKeys"
       size="small"
+      :resizableColumns="false"
       :filters="filters"
       :filterMode="filterMode.value"
       sortField="namespace"
       :sortOrder="-1"
       removableSort
-      :showGridlines="false"
-      :indentation="2"
-      v-model:selectionKeys="selectedNodeKeys"
+      :indentation="1.5"
       :row-hover="true"
       :style="{
         'font-size': '0.9rem',
@@ -41,8 +41,8 @@
               @update:modelValue="onToggle"
               :options="togglableColumns"
               optionLabel="header"
-              class="w-full sm:w-64"
-              display="chip"
+              :selectedItemsLabel="`${visibleColumns.length} columns selected`"
+              :maxSelectedLabels="4"
               placeholder="Toggle columns"
             />
           </div>
@@ -192,7 +192,7 @@
             v-if="slotProps.node.data.source"
             icon="pi pi-external-link"
             size="small"
-            severity="secondary"
+            severity="primary"
             class="custom-source-button"
             @click="showSource(slotProps.node.data.source)"
           />
@@ -201,7 +201,7 @@
     </TreeTable>
 
     <Dialog v-model:visible="sourceDialogVisible" :style="{ width: '50vw' }">
-      <highlightjs autodetect :code="currentSource" />
+      <highlightjs lang="yaml" :code="currentSource" />
     </Dialog>
   </div>
 </template>
@@ -235,7 +235,6 @@ const filterMode = ref({ value: 'lenient' })
 const sourceDialogVisible = ref(false)
 const currentSource = ref('')
 const expandedKeys = ref({})
-const selectedNodeKeys = ref([])
 
 // Function to handle node expansion
 // If one match is is expanded,
@@ -590,11 +589,6 @@ a {
   color: inherit;
 }
 
-/* Hide the toggle icon for statement and features */
-:deep(.p-treetable-tbody) tr:not(:is([aria-level='1'], [aria-level='2'])) svg {
-  display: none;
-}
-
 /* Optional: Add a subtle background to root-level rows for better distinction */
 :deep(.p-treetable-tbody > tr[aria-level='1']) {
   background-color: #f9f9f9;
@@ -630,5 +624,9 @@ a {
 
 :deep(.custom-source-button .p-button-icon) {
   font-size: 0.8rem;
+}
+
+.p-treetable.p-treetable-sm .p-treetable-tbody > tr > td {
+  border: none !important;
 }
 </style>

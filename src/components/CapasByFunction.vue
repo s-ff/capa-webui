@@ -1,19 +1,24 @@
 <template>
   <TreeTable
     :value="treeData"
+    class="mytree"
     v-model:expandedKeys="expandedKeys"
     size="small"
     :filters="filters"
     :filterMode="filterMode.value"
     sortField="funcaddr"
     :sortOrder="1"
-    :paginator="true"
-    :rows="50"
-    :rowsPerPageOptions="[5, 10, 25, 50]"
     removableSort
-    :showGridlines="false"
     :indentation="2"
-    row-hover="true"
+    :tableStyle="{
+      width: '100%',
+      border: 'none !important',
+      'border-collapse': 'collapse'
+    }"
+    :pt="{
+      bodyRow: { style: 'height: var(--row-height); border: none !important' },
+      bodyCell: { style: 'padding: 0.15rem 0.5rem; width 5%; border: none !important' }
+    }"
   >
     <template #header>
       <div
@@ -80,7 +85,13 @@
       <template #body="slotProps">
         <Button
           v-if="slotProps.node.data.source"
+          text
+          raised
+          rounded
           icon="pi pi-external-link"
+          size="small"
+          severity="secondary"
+          class="custom-source-button"
           @click="showSource(slotProps.node.data.source)"
         />
       </template>
@@ -94,6 +105,8 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import '../assets/main.css'
+
 import TreeTable from 'primevue/treetable'
 import Column from 'primevue/column'
 import Dialog from 'primevue/dialog'
@@ -204,5 +217,27 @@ const treeData = computed(() => {
 <style scoped>
 .info-tooltip {
   margin-left: 10px;
+}
+table > tr > td {
+  border: none !important;
+  border-spacing: 0 !important;
+}
+
+:deep(.custom-source-button) {
+  padding: 0 !important;
+  height: 1.5rem !important;
+  width: 1.5rem !important;
+}
+
+:deep(.custom-source-button .p-button-icon) {
+  font-size: 0.8rem;
+}
+
+.p-treetable-tbody > tr > td {
+  border-spacing: 0 0 0 0;
+}
+
+.p-treetable.p-treetable-sm .p-treetable-tbody > tr {
+  padding: 0 !important;
 }
 </style>

@@ -31,13 +31,6 @@
         </IconField>
       </div>
     </template>
-
-    <template #footer>
-      <div style="display: flex; justify-content: flex-start">
-        <Button icon="pi pi-arrow-up" label="Go Up" severity="warn" @click="scrollToTop" />
-      </div>
-    </template>
-
     <Column field="processname" sortable header="Process Name" expander filterMatchMode="contains">
       <template #filter>
         <InputText
@@ -63,8 +56,6 @@
       </template>
     </Column>
 
-    <Column field="matchcount" header="Rule Matches"></Column>
-
     <Column field="namespace" sortable header="Namespace" filterMatchMode="contains">
       <template #filter>
         <InputText v-model="filters['namespace']" type="text" placeholder="Filter by namespace" />
@@ -74,8 +65,14 @@
     <Column field="source" header="Source">
       <template #body="slotProps">
         <Button
+          text
+          raised
+          rounded
           v-if="slotProps.node.data.source"
           icon="pi pi-external-link"
+          size="small"
+          severity="primary"
+          class="custom-source-button"
           @click="showSource(slotProps.node.data.source)"
         />
       </template>
@@ -125,7 +122,6 @@ const showSource = (source) => {
 
 const toggleAll = () => {
   let _expandedKeys = {}
-
   if (Object.keys(expandedKeys.value).length === 0) {
     const expandAll = (node) => {
       if (node.children && node.children.length) {
@@ -136,71 +132,89 @@ const toggleAll = () => {
 
     treeData.value.forEach(expandAll)
   }
-
   expandedKeys.value = _expandedKeys
 }
 
-const scrollToTop = () => {
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  })
+const mapMatchesToProcesses = (rules) => {
+  const threadToProcess = {}
+  const matchesByProcess = {}
+
+  // Collect unique thread values and map them to processes
+  for (const ruleName in rules) {
+    const ruleData = rules[ruleName]
+    for (const match of ruleData.matches) {
+      const threadValue = match[0].value
+      const threadKey = threadValue.join(',')
+      if (!threadToProcess[threadKey]) {
+        const processId = threadValue[0]
+        threadToProcess[threadKey] = processId
+      }
+    }
+  }
+
+  // Group matches by process
+  for (const ruleName in rules) {
+    const ruleData = rules[ruleName]
+    for (const match of ruleData.matches) {
+      const threadValue = match[0].value
+      const threadKey = threadValue.join(',')
+      const processId = threadToProcess[threadKey]
+      if (!matchesByProcess[processId]) {
+        matchesByProcess[processId] = {}
+      }
+      if (!matchesByProcess[processId][ruleName]) {
+        matchesByProcess[processId][ruleName] = []
+      }
+      matchesByProcess[processId][ruleName].push(match)
+    }
+  }
+
+  return matchesByProcess
 }
 
 const treeData = computed(() => {
   const data = []
-  const processes = props.data.meta.analysis.layout.processes
+  const matchesByProcess = mapMatchesToProcesses(props.data.rules)
 
-  let processKey = 1
+  for (const processId in matchesByProcess) {
+    const processMatches = matchesByProcess[processId]
+    const processNode = {
+      key: `process-${processId}`,
+      data: {
+        processname: `Process ${processId}`,
+        type: 'process',
+        matchcount: Object.keys(processMatches).length,
+        namespace: null,
+        procID: processId,
+        source: null
+      },
+      children: []
+    }
 
-  for (const processInfo of processes) {
-    const processName = processInfo.name
-    const matchingRules = []
-
-    for (const ruleId in props.data.rules) {
-      const rule = props.data.rules[ruleId]
+    for (const ruleName in processMatches) {
+      const ruleMatches = processMatches[ruleName]
+      const rule = props.data.rules[ruleName]
 
       if (!props.showLibraryRules && rule.meta.lib) {
         continue
       }
 
-      if (rule.meta.scopes.dynamic === 'process') {
-        const matches = rule.matches.filter(
-          (match) =>
-            match[0].type === 'process' &&
-            match[0].value.every((addr) => processInfo.address.value.includes(addr))
-        )
-
-        if (matches.length > 0) {
-          matchingRules.push({
-            key: `${processName}-${matchingRules.length}`,
-            data: {
-              processname: `rule: ${rule.meta.name}`,
-              type: 'rule',
-              matchcount: null,
-              namespace: rule.meta.namespace,
-              procID: processInfo.address.value.join(', '),
-              source: rule.source
-            }
-          })
+      const ruleNode = {
+        key: `${processId}-${ruleName}`,
+        data: {
+          processname: `rule: ${rule.meta.name}`,
+          type: 'rule',
+          matchcount: ruleMatches.length,
+          namespace: rule.meta.namespace,
+          procID: processId,
+          source: rule.source
         }
       }
+
+      processNode.children.push(ruleNode)
     }
 
-    if (matchingRules.length > 0) {
-      data.push({
-        key: `process-${processKey++}`,
-        data: {
-          processname: processName,
-          type: 'process',
-          matchcount: matchingRules.length,
-          namespace: null,
-          procID: processInfo.address.value.join(', '),
-          source: null
-        },
-        children: matchingRules
-      })
-    }
+    data.push(processNode)
   }
 
   return data

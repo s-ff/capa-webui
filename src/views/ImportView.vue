@@ -90,7 +90,7 @@ const onUpload = (event) => {
 }
 
 const loadURL = ref('')
-
+/*
 // function to check for URL parameter and load JSON if present
 const checkAndLoadFromURLParam = () => {
   const urlParams = new URLSearchParams(window.location.search)
@@ -100,6 +100,7 @@ const checkAndLoadFromURLParam = () => {
     loadFromURL()
   }
 }
+
 
 // Call the new function when the component mounts
 onMounted(() => {
@@ -142,7 +143,7 @@ const loadFromURL = async () => {
     })
   }
 }
-
+*/
 const loadDemoDataStatic = () => {
   if (checkVersion(demoRdocStatic)) {
     jsonData.value = demoRdocStatic
